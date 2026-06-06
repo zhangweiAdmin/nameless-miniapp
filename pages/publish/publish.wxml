@@ -1,0 +1,110 @@
+<view class="container publish-page">
+  <view class="soft-orb one"></view>
+  <view class="soft-orb two"></view>
+
+  <view class="publish-hero glass-card">
+    <view class="paper-plane">🕊️</view>
+    <view class="hero-copy">
+      <view class="page-title">投递匿名纸条</view>
+      <view class="page-subtitle">匿名投纸条，轻松没烦恼，回应随缘了，隐私我们保</view>
+    </view>
+  </view>
+
+  <view class="section glass-card">
+    <view class="section-title">选择语气</view>
+    <view class="category-grid">
+      <block wx:for="{{categories}}" wx:key="key">
+        <view
+          class="category-card {{activeCategory == item.key ? 'active' : ''}}"
+          style="--tone: {{item.tone}}; border-color: {{activeCategory == item.key ? item.tone : 'rgba(218, 188, 153, 0.34)'}};"
+          data-key="{{item.key}}"
+          bindtap="selectCategory"
+          hover-class="pressing"
+        >
+          <text class="category-card-icon">{{item.icon}}</text>
+          <text>{{item.label}}</text>
+        </view>
+      </block>
+    </view>
+    <view wx:if="{{targetName}}" class="target-preview" bindtap="editTargetName" hover-class="pressing">
+      <text>写给：{{targetName}}</text>
+      <text class="target-edit">修改</text>
+    </view>
+  </view>
+
+  <view class="section glass-card">
+    <view class="section-head">
+      <view>
+        <view class="section-title">选一句模板</view>
+        <view class="section-note">不知道说什么，就从模版中寻找吧～</view>
+      </view>
+      <view class="template-actions">
+        <view class="mode-tag">模板</view>
+        <view wx:if="{{activeCategory}}" class="mode-tag refresh-tag" bindtap="changeTemplateBatch" hover-class="pressing">换一批</view>
+      </view>
+    </view>
+
+    <block wx:if="{{activeCategory}}">
+      <block wx:for="{{templates}}" wx:key="*this">
+        <view
+          class="template-card {{selectedTemplateIndex == index ? 'active' : ''}}"
+          data-index="{{index}}"
+          bindtap="selectTemplate"
+          hover-class="pressing"
+        >
+          <text>{{item}}</text>
+        </view>
+      </block>
+    </block>
+    <view wx:else class="template-placeholder">
+      先选语气并填写写给谁，模板就会出现在这里。
+    </view>
+  </view>
+
+  <view class="section glass-card custom-section">
+    <view class="section-head">
+      <view>
+        <view class="section-title">模版不够自己来凑</view>
+        <view class="section-note">别怕，写啥都行，哪怕写“此处省略120字”</view>
+      </view>
+      <view class="ghost-btn custom-entry {{checkingCustomEntry ? 'disabled' : ''}}" bindtap="startCustomWriting" hover-class="pressing">{{checkingCustomEntry ? '准备中' : (showCustomInput ? '继续写' : '自定义文案')}}</view>
+    </view>
+
+    <view wx:if="{{showCustomInput}}" class="textarea-wrap">
+      <textarea
+        class="custom-textarea"
+        placeholder="比如：匿名夸一下那个把事情接住的人..."
+        value="{{content}}"
+        maxlength="{{maxLength}}"
+        auto-height
+        bindinput="onContentInput"
+      />
+      <view class="counter">{{contentLength}}/{{maxLength}}</view>
+    </view>
+  </view>
+
+  <view wx:if="{{targetPromptVisible}}" class="target-modal-mask" catchtap="cancelTargetName">
+    <view class="target-modal glass-card" catchtap="noop">
+      <view class="target-modal-title">{{targetPromptTitle}}</view>
+      <view class="target-modal-note">写外号或群内称呼就好，不用写真名。</view>
+      <view class="target-input-wrap">
+        <input
+          class="target-input"
+          maxlength="{{targetNameMaxLength}}"
+          value="{{targetDraft}}"
+          placeholder="{{targetPromptPlaceholder}}"
+          confirm-type="done"
+          focus="{{targetPromptVisible}}"
+          bindinput="onTargetDraftInput"
+        />
+      </view>
+      <view class="target-counter">{{targetDraftLength}}/{{targetNameMaxLength}}</view>
+      <view class="target-modal-actions">
+        <view class="target-action secondary" bindtap="cancelTargetName" hover-class="pressing">取消</view>
+        <view class="target-action primary" bindtap="confirmTargetName" hover-class="pressing">保存</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="primary-btn publish-btn {{submitting ? 'disabled' : ''}}" bindtap="submitMessage" hover-class="pressing">{{submitting ? '匿名投递中' : '匿名放进盒子'}}</view>
+</view>

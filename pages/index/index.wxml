@@ -1,0 +1,163 @@
+<view class="container index-page">
+  <view class="soft-orb one"></view>
+  <view class="soft-orb two"></view>
+
+  <view class="hero glass-card">
+    <view class="hero-kicker">ANON WHISPER BOX</view>
+    <view class="hero-title-row">
+      <view>
+        <view class="hero-title">{{groupName}}</view>
+        <view class="hero-subtitle">群里说话怕尴尬，匿名留言有办法。夸夸安慰随心发，点赞多了往前挂。</view>
+      </view>
+      <view class="hero-badge">✉️</view>
+    </view>
+  </view>
+
+  <view wx:if="{{hasGroupContext && !resolvingGroupContext}}" class="toolbar glass-card">
+    <scroll-view class="category-scroll" scroll-x enhanced show-scrollbar="false">
+      <block wx:for="{{categories}}" wx:key="key">
+        <view
+          class="category-chip {{activeCategory == item.key ? 'active' : ''}}"
+          style="border-color: {{activeCategory == item.key ? item.tone : 'rgba(217, 190, 162, 0.38)'}};"
+          data-key="{{item.key}}"
+          bindtap="selectCategory"
+          hover-class="pressing"
+        >
+          <text class="category-icon">{{item.icon}}</text>
+          <text>{{item.label}}</text>
+        </view>
+      </block>
+    </scroll-view>
+
+    <view class="sort-switch">
+      <view class="sort-item {{sortBy == 'hot' ? 'active' : ''}}" data-sort="hot" bindtap="toggleSort" hover-class="pressing">最火</view>
+      <view class="sort-item {{sortBy == 'new' ? 'active' : ''}}" data-sort="new" bindtap="toggleSort" hover-class="pressing">最新</view>
+    </view>
+  </view>
+
+  <scroll-view
+    class="message-scroll"
+    scroll-y
+    enhanced
+    lower-threshold="120"
+    bindscrolltolower="onScrollToLower"
+  >
+    <view wx:if="{{resolvingGroupContext || (loading && hasGroupContext && !messages.length)}}" class="loading-line">
+      {{resolvingGroupContext ? '正在确认群隐盒...' : '正在拆开小纸条...'}}
+    </view>
+
+    <block wx:if="{{!resolvingGroupContext && messages.length}}">
+      <block wx:for="{{messages}}" wx:key="_id">
+        <view class="message-card glass-card" style="animation-delay: {{index * 60}}ms;">
+          <view class="card-head">
+            <view class="category-pill" style="color: {{item.categoryTone}}; background: {{item.categoryTone}}22;">
+              <text>{{item.categoryIcon}}</text>
+              <text>{{item.categoryLabel}}</text>
+            </view>
+            <view class="time-text">{{item.formattedTime}}</view>
+          </view>
+
+          <view wx:if="{{item.targetName}}" class="target-line">
+            <text>写给：</text>
+            <text>{{item.targetName}}</text>
+          </view>
+
+          <view class="message-content">{{item.content}}</view>
+
+          <view class="interaction-row">
+            <view class="like-btn {{item.liked ? 'liked' : ''}}" data-id="{{item._id}}" bindtap="handleLike" hover-class="pressing">
+              <text class="heart">{{item.liked ? '♥' : '♡'}}</text>
+              <text>{{item.likeCount || 0}}</text>
+            </view>
+
+            <view class="reaction-list">
+              <block wx:for="{{item.reactionList}}" wx:for-item="reaction" wx:key="emotion">
+                <view
+                  class="reaction-btn {{reaction.active ? 'active' : ''}}"
+                  data-id="{{item._id}}"
+                  data-emotion="{{reaction.emotion}}"
+                  bindtap="handleReaction"
+                  hover-class="pressing"
+                >
+                  <text>{{reaction.emotion}}</text>
+                  <text class="reaction-count">{{reaction.count}}</text>
+                </view>
+              </block>
+            </view>
+          </view>
+
+          <view class="identity-box unlocked" wx:if="{{item.unlocked}}">
+            <view>
+              <view class="identity-label">发送者昵称</view>
+              <view class="identity-name">{{item.senderNickname || '暂未确认昵称'}}</view>
+            </view>
+            <view class="identity-mark">🌙</view>
+          </view>
+
+          <view class="identity-box locked" wx:else>
+            <view class="lock-copy">
+              <view class="identity-label">发送者藏着</view>
+              <view class="lock-tip">解锁后显示发送者昵称，不显示头像。</view>
+            </view>
+            <view class="unlock-actions">
+              <view
+                class="mini-action {{preparingShareId == item._id ? 'disabled' : ''}}"
+                data-id="{{item._id}}"
+                bindtap="prepareShareUnlock"
+                hover-class="pressing"
+              >{{preparingShareId == item._id ? '准备中' : '解锁发送者'}}</view>
+            </view>
+          </view>
+
+          <view class="report-link" data-id="{{item._id}}" bindtap="reportMessage" hover-class="pressing">举报</view>
+        </view>
+      </block>
+    </block>
+
+    <view wx:if="{{!resolvingGroupContext && !loading && !messages.length}}" class="empty-state glass-card">
+      <text class="empty-illustration">🪶</text>
+      <block wx:if="{{!hasGroupContext}}">
+        <view>先把群隐盒分享进群里</view>
+        <view>从群里的卡片进入就能看到这个群的匿名消息。</view>
+        <view>第一个分享者将成为群隐盒管理员</view>
+      </block>
+      <block wx:else>
+        <view>这个群还没有匿名纸条。</view>
+        <view>成为第一个匿名投递的人吧。</view>
+      </block>
+    </view>
+
+    <view wx:if="{{!resolvingGroupContext && loadingMore}}" class="loading-line">继续翻找纸条...</view>
+    <view wx:if="{{!resolvingGroupContext && !hasMore && messages.length}}" class="loading-line">纸条先看到这里啦</view>
+  </scroll-view>
+
+  <view wx:if="{{hasGroupContext && !resolvingGroupContext}}" class="fab" bindtap="goPublish" hover-class="pressing">
+    <text class="fab-icon">🪶</text>
+    <text>匿名投递</text>
+  </view>
+
+  <view wx:if="{{nicknamePromptVisible}}" class="profile-modal-mask" catchtap="cancelNicknamePrompt">
+    <view class="profile-modal glass-card" catchtap="noop">
+      <view class="profile-modal-title">填写你的昵称</view>
+      <view class="nickname-input-wrap">
+        <input
+          class="nickname-input"
+          type="nickname"
+          maxlength="{{nicknameMaxLength}}"
+          value="{{nicknameDraft}}"
+          placeholder="点击选择或填写微信昵称"
+          confirm-type="done"
+          focus="{{nicknamePromptVisible}}"
+          bindinput="onNicknameDraftInput"
+          bindblur="onNicknameDraftInput"
+        />
+      </view>
+      <view wx:if="{{nicknamePromptError}}" class="nickname-error">{{nicknamePromptError}}</view>
+      <view class="nickname-counter">{{nicknameDraftLength}}/{{nicknameMaxLength}}</view>
+      <view class="profile-modal-actions">
+        <view class="profile-action secondary" bindtap="cancelNicknamePrompt" hover-class="pressing">取消</view>
+        <view class="profile-action primary {{nicknameSaving ? 'disabled' : ''}}" bindtap="confirmNicknamePrompt" hover-class="pressing">{{nicknameSaving ? '保存中' : '保存'}}</view>
+      </view>
+    </view>
+  </view>
+</view>

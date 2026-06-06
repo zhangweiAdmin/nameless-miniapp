@@ -1,0 +1,764 @@
+const app = getApp()
+const config = require('../../utils/config')
+const { CATEGORIES, CATEGORY_MAP, REACTIONS } = require('../../utils/categories')
+const { callFunction, showCloudError } = require('../../utils/cloud')
+const { formatTime, normalizeCloudDate } = require('../../utils/format')
+const {
+  MAX_NICKNAME_LENGTH,
+  getNicknameError,
+  normalizeNickname,
+  readUserProfile,
+  saveNicknameProfile,
+} = require('../../utils/profile')
+
+const ALL_CATEGORY = { key: '', label: '全部', icon: '🫧', tone: '#C7775A' }
+const FEATURE_FLAGS = config.featureFlags || {}
+
+function resultData(result) {
+  return result.data || result
+}
+
+function buildReactionList(reactions, reactedEmotions) {
+  const reacted = reactedEmotions || []
+  return REACTIONS.map((emotion) => ({
+    emotion,
+    count: reactions && reactions[emotion] ? reactions[emotion] : 0,
+    active: reacted.indexOf(emotion) > -1,
+  }))
+}
+
+function decorateMessage(item) {
+  const category = CATEGORY_MAP[item.category] || CATEGORY_MAP.praise
+  const createTime = normalizeCloudDate(item.createTime)
+  return Object.assign({}, item, {
+    categoryIcon: category.icon,
+    categoryLabel: category.label,
+    categoryTone: category.tone,
+    formattedTime: formatTime(createTime),
+    liked: !!item.liked,
+    unlocked: !!item.unlocked || !!item.isOwner,
+    senderNickname: item.senderNickname || (item.isOwner ? '我自己' : ''),
+    activityId: item.activityId || '',
+    reactionList: buildReactionList(item.reactions || {}, item.reactedEmotions || []),
+  })
+}
+
+function currentGroupInfo() {
+  return app.globalData.groupInfo || {}
+}
+
+function currentOpenGid() {
+  const groupInfo = currentGroupInfo()
+  return groupInfo.openGid || ''
+}
+
+function getShareInfo(shareTicket) {
+  return new Promise((resolve) => {
+    if (!shareTicket || !wx.getShareInfo) {
+      resolve({})
+      return
+    }
+
+    wx.getShareInfo({
+      shareTicket,
+      success: resolve,
+      fail: () => resolve({}),
+    })
+  })
+}
+
+function bindGroupByShareTicket(shareTicket) {
+  return getShareInfo(shareTicket).then((shareInfo) => callFunction('bindGroup', {
+    shareTicket,
+    cloudId: shareInfo.cloudID || shareInfo.cloudId || '',
+  }))
+}
+
+Page({
+  data: {
+    groupName: '群隐盒',
+    hasGroupContext: false,
+    activeOpenGid: '',
+    categories: [ALL_CATEGORY].concat(CATEGORIES),
+    activeCategory: '',
+    sortBy: 'hot',
+    messages: [],
+    pageToken: '',
+    hasMore: true,
+    loading: false,
+    loadingMore: false,
+    resolvingGroupContext: false,
+    preparingShareId: '',
+    sharePreparedMessageId: '',
+    unlockingId: '',
+    hasUserProfile: false,
+    profileNickname: '',
+    profileLoading: false,
+    nicknamePromptVisible: false,
+    nicknameDraft: '',
+    nicknameDraftLength: 0,
+    nicknamePromptError: '',
+    nicknameSaving: false,
+    nicknameMaxLength: MAX_NICKNAME_LENGTH,
+    enableDirectUnlock: !!FEATURE_FLAGS.enableDirectUnlock && !!config.adUnitIds.rewarded,
+  },
+
+  onLoad(options) {
+    this.routeOpenGid = options && options.openGid ? options.openGid : ''
+    this.captureGroupFromQuery(options)
+    this.capturePendingUnlock(options)
+    this.syncUserProfileState()
+    this.resolveGroupContextAndRefresh()
+  },
+
+  onShow() {
+    if (app.globalData.shareTicket && app.globalData.shareTicket !== this.boundShareTicket) {
+      this.resolveGroupContextAndRefresh().then(() => {
+        this.consumePendingUnlock()
+      })
+      return
+    }
+
+    const groupChanged = this.syncGroupState()
+    this.syncUserProfileState()
+
+    this.consumePendingUnlock()
+
+    if (groupChanged) {
+      this.setData({
+        activeCategory: '',
+        messages: [],
+        pageToken: '',
+        hasMore: false,
+        loading: false,
+        loadingMore: false,
+      })
+      this.refreshMessages()
+      return
+    }
+
+    if (app.globalData.needRefreshMessages) {
+      app.globalData.needRefreshMessages = false
+      this.setData({ activeCategory: '' })
+      this.refreshMessages()
+    }
+  },
+
+  onPullDownRefresh() {
+    this.refreshMessages().then(() => {
+      wx.stopPullDownRefresh()
+    }).catch(() => {
+      wx.stopPullDownRefresh()
+    })
+  },
+
+  onScrollToLower() {
+    this.loadMessages(false)
+  },
+
+  syncUserProfileState() {
+    const profile = readUserProfile()
+    app.globalData.userProfile = profile
+    this.setData({
+      hasUserProfile: !!profile,
+      profileNickname: profile ? profile.nickname : '',
+    })
+    return profile
+  },
+
+  authorizeProfile() {
+    const existing = this.syncUserProfileState()
+    if (existing) return Promise.resolve(existing)
+    if (this.profilePromptPromise) return this.profilePromptPromise
+
+    this.setData({
+      nicknamePromptVisible: true,
+      nicknameDraft: '',
+      nicknameDraftLength: 0,
+      nicknamePromptError: '',
+      nicknameSaving: false,
+    })
+
+    this.profilePromptPromise = new Promise((resolve) => {
+      this.profilePromptResolve = resolve
+    })
+    return this.profilePromptPromise
+  },
+
+  finishNicknamePrompt(profile) {
+    const resolve = this.profilePromptResolve
+    this.profilePromptResolve = null
+    this.profilePromptPromise = null
+    if (resolve) resolve(profile || null)
+  },
+
+  onNicknameDraftInput(event) {
+    const nickname = normalizeNickname(event.detail.value || '')
+    this.setData({
+      nicknameDraft: nickname,
+      nicknameDraftLength: Array.from(nickname).length,
+      nicknamePromptError: '',
+    })
+  },
+
+  cancelNicknamePrompt() {
+    if (this.data.nicknameSaving) return
+    this.setData({
+      nicknamePromptVisible: false,
+      nicknameDraft: '',
+      nicknameDraftLength: 0,
+      nicknamePromptError: '',
+    })
+    this.finishNicknamePrompt(null)
+  },
+
+  confirmNicknamePrompt() {
+    if (this.data.nicknameSaving) return
+
+    const nickname = normalizeNickname(this.data.nicknameDraft)
+    const error = getNicknameError(nickname)
+    if (error) {
+      this.setData({ nicknamePromptError: error })
+      return
+    }
+
+    this.setData({
+      nicknameSaving: true,
+      profileLoading: true,
+      nicknamePromptError: '',
+    })
+
+    saveNicknameProfile(nickname).then((profile) => {
+      app.globalData.userProfile = profile
+      this.setData({
+        hasUserProfile: true,
+        profileNickname: profile.nickname,
+        nicknamePromptVisible: false,
+        nicknameDraft: '',
+        nicknameDraftLength: 0,
+      })
+      wx.showToast({ title: '昵称已保存', icon: 'success' })
+      this.finishNicknamePrompt(profile)
+      return profile
+    }).catch((error) => {
+      this.setData({
+        nicknamePromptError: error && error.message ? error.message : '昵称保存失败，请重试',
+      })
+    }).then(() => {
+      this.setData({
+        nicknameSaving: false,
+        profileLoading: false,
+      })
+    })
+  },
+
+  noop() {},
+
+  consumePendingUnlock() {
+    if (!app.globalData.pendingUnlock) return
+
+    const pendingUnlock = app.globalData.pendingUnlock
+    app.globalData.pendingUnlock = null
+    this.askUnlockFromShare(pendingUnlock)
+  },
+
+  capturePendingUnlock(options) {
+    if (!options || !options.messageId) return
+    app.globalData.pendingUnlock = {
+      messageId: options.messageId,
+      activityId: options.activityId || '',
+    }
+  },
+
+  captureGroupFromQuery(options) {
+    if (!options || !options.openGid) return
+    app.globalData.groupInfo = Object.assign({}, currentGroupInfo(), {
+      customName: options.groupName ? decodeURIComponent(options.groupName) : currentGroupInfo().customName || '群隐盒',
+      openGid: options.openGid,
+    })
+  },
+
+  resolveGroupContextAndRefresh() {
+    const resolveToken = Date.now()
+    this.groupResolveToken = resolveToken
+    this.setData({
+      resolvingGroupContext: true,
+      activeCategory: '',
+      messages: [],
+      pageToken: '',
+      hasMore: false,
+      loading: false,
+      loadingMore: false,
+    })
+
+    return this.syncGroupFromShare().then(() => {
+      if (this.groupResolveToken !== resolveToken) return Promise.resolve()
+      return this.refreshMessages()
+    }).then(() => {
+      if (this.groupResolveToken === resolveToken) {
+        this.setData({ resolvingGroupContext: false })
+      }
+    }).catch((error) => {
+      if (this.groupResolveToken === resolveToken) {
+        this.setData({
+          resolvingGroupContext: false,
+          messages: [],
+          hasMore: false,
+          loading: false,
+          loadingMore: false,
+        })
+      }
+      showCloudError(error, '群隐盒加载失败')
+    })
+  },
+
+  syncGroupFromShare() {
+    const shareTicket = app.globalData.shareTicket
+    if (shareTicket) {
+      return bindGroupByShareTicket(shareTicket).then((result) => {
+        const data = resultData(result)
+        const groupInfo = {
+          customName: data.customName || '群隐盒',
+          isCreator: !!data.isCreator,
+          modifyCount: data.modifyCount || 0,
+          openGid: data.openGid || '',
+        }
+        app.globalData.groupInfo = groupInfo
+        this.boundShareTicket = shareTicket
+        this.syncGroupState()
+        return groupInfo
+      }).catch(() => {
+        this.syncGroupState()
+        return currentGroupInfo()
+      })
+    }
+
+    const queryOpenGid = this.routeOpenGid || ''
+    if (queryOpenGid) {
+      return callFunction('bindGroup', { openGid: queryOpenGid }).then((result) => {
+        const data = resultData(result)
+        const groupInfo = {
+          customName: data.customName || currentGroupInfo().customName || '群隐盒',
+          isCreator: !!data.isCreator,
+          modifyCount: data.modifyCount || 0,
+          openGid: data.openGid || queryOpenGid,
+        }
+        app.globalData.groupInfo = groupInfo
+        this.syncGroupState()
+        return groupInfo
+      }).catch(() => {
+        this.syncGroupState()
+        return currentGroupInfo()
+      })
+    }
+
+    if (!currentOpenGid()) {
+      this.syncGroupState()
+      return Promise.resolve(currentGroupInfo())
+    }
+
+    return callFunction('bindGroup', { openGid: currentOpenGid() }).then((result) => {
+      const data = resultData(result)
+      const groupInfo = {
+        customName: data.customName || '群隐盒',
+        isCreator: !!data.isCreator,
+        modifyCount: data.modifyCount || 0,
+        openGid: data.openGid || currentOpenGid(),
+      }
+      app.globalData.groupInfo = groupInfo
+      this.syncGroupState()
+      return groupInfo
+    }).catch(() => {
+      this.syncGroupState()
+      return currentGroupInfo()
+    })
+  },
+
+  syncGroupState() {
+    const groupInfo = currentGroupInfo()
+    const openGid = groupInfo.openGid || ''
+    const groupChanged = openGid !== this.data.activeOpenGid
+    this.setData({
+      groupName: groupInfo.customName || '群隐盒',
+      hasGroupContext: !!openGid,
+      activeOpenGid: openGid,
+    })
+    return groupChanged
+  },
+
+  refreshMessages() {
+    if (!this.data.hasGroupContext) {
+      this.setData({
+        messages: [],
+        pageToken: '',
+        hasMore: false,
+        loading: false,
+        loadingMore: false,
+      })
+      return Promise.resolve()
+    }
+
+    this.setData({
+      pageToken: '',
+      hasMore: true,
+    })
+    return this.loadMessages(true)
+  },
+
+  loadMessages(reset) {
+    if (!this.data.hasGroupContext) {
+      this.setData({
+        messages: [],
+        pageToken: '',
+        hasMore: false,
+        loading: false,
+        loadingMore: false,
+      })
+      return Promise.resolve()
+    }
+
+    if (this.data.loading || (!reset && !this.data.hasMore)) {
+      return Promise.resolve()
+    }
+
+    this.setData({
+      loading: reset,
+      loadingMore: !reset,
+    })
+
+    return callFunction('getMessages', {
+      openGid: currentOpenGid(),
+      category: this.data.activeCategory,
+      sortBy: this.data.sortBy,
+      pageSize: config.pageSize,
+      pageToken: reset ? '' : this.data.pageToken,
+    }).then((result) => {
+      const data = resultData(result)
+      const nextList = (data.list || []).map(decorateMessage)
+      this.setData({
+        messages: reset ? nextList : this.data.messages.concat(nextList),
+        pageToken: data.nextToken || '',
+        hasMore: !!data.nextToken,
+      })
+    }).catch((error) => {
+      if (reset) this.setData({ messages: [], hasMore: false })
+      showCloudError(error, '匿名纸条暂时加载失败')
+    }).then(() => {
+      this.setData({ loading: false, loadingMore: false })
+    })
+  },
+
+  selectCategory(event) {
+    if (!this.data.hasGroupContext) {
+      this.showGroupEntryTip()
+      return
+    }
+
+    const key = event.currentTarget.dataset.key || ''
+    if (key === this.data.activeCategory) return
+    this.setData({ activeCategory: key })
+    this.refreshMessages()
+  },
+
+  toggleSort(event) {
+    if (!this.data.hasGroupContext) {
+      this.showGroupEntryTip()
+      return
+    }
+
+    const sortBy = event.currentTarget.dataset.sort
+    if (!sortBy || sortBy === this.data.sortBy) return
+    this.setData({ sortBy })
+    this.refreshMessages()
+  },
+
+  goPublish() {
+    if (!this.data.hasGroupContext) {
+      this.showGroupEntryTip()
+      return
+    }
+
+    if (!this.syncUserProfileState()) {
+      this.authorizeProfile().then((profile) => {
+        if (profile) wx.navigateTo({ url: '/pages/publish/publish' })
+      })
+      return
+    }
+
+    wx.navigateTo({ url: '/pages/publish/publish' })
+  },
+
+  showProfileEntryTip() {
+    wx.showModal({
+      title: '先确认昵称',
+      content: '确认昵称后才能匿名投递。你仍然可以先浏览群里的纸条。',
+      confirmText: '知道了',
+      showCancel: false,
+    })
+  },
+
+  showGroupEntryTip() {
+    if (wx.showShareMenu) {
+      wx.showShareMenu({
+        withShareTicket: true,
+        menus: ['shareAppMessage'],
+      })
+    }
+
+    wx.showModal({
+      title: '先放进群里',
+      content: '请点击右上角“...”把群隐盒分享到群，再从群里的卡片进入。每个群会拥有自己的匿名纸条盒。',
+      confirmText: '知道了',
+      showCancel: false,
+    })
+  },
+
+  updateMessage(messageId, updater) {
+    const messages = this.data.messages.map((message) => {
+      if (message._id !== messageId) return message
+      const patch = typeof updater === 'function' ? updater(message) : updater
+      return Object.assign({}, message, patch)
+    })
+    this.setData({ messages })
+  },
+
+  getMessage(messageId) {
+    return this.data.messages.find((message) => message._id === messageId)
+  },
+
+  handleLike(event) {
+    const messageId = event.currentTarget.dataset.id
+    const message = this.getMessage(messageId)
+    if (!message) return
+
+    const nextLiked = !message.liked
+    const nextLikeCount = Math.max(0, (message.likeCount || 0) + (nextLiked ? 1 : -1))
+    this.updateMessage(messageId, { liked: nextLiked, likeCount: nextLikeCount })
+
+    callFunction('toggleLike', { messageId }).then((result) => {
+      const data = resultData(result)
+      this.updateMessage(messageId, {
+        liked: data.action === 'add',
+        likeCount: data.likeCount || 0,
+      })
+    }).catch((error) => {
+      this.updateMessage(messageId, {
+        liked: message.liked,
+        likeCount: message.likeCount || 0,
+      })
+      showCloudError(error, '点赞失败，请稍后再试')
+    })
+  },
+
+  handleReaction(event) {
+    const messageId = event.currentTarget.dataset.id
+    const emotion = event.currentTarget.dataset.emotion
+    const message = this.getMessage(messageId)
+    if (!message || !emotion) return
+
+    const existing = message.reactionList.find((item) => item.emotion === emotion)
+    if (existing && existing.active) {
+      wx.showToast({ title: '这枚表情已经送过啦', icon: 'none' })
+      return
+    }
+
+    callFunction('addReaction', { messageId, emotion }).then((result) => {
+      const data = resultData(result)
+      this.updateMessage(messageId, (current) => ({
+        reactionList: current.reactionList.map((item) => {
+          if (item.emotion !== emotion) return item
+          return {
+            emotion: item.emotion,
+            count: data.count || item.count + 1,
+            active: true,
+          }
+        }),
+      }))
+    }).catch((error) => {
+      showCloudError(error, '回应失败，请稍后再试')
+    })
+  },
+
+  prepareShareUnlock(event) {
+    const messageId = event.currentTarget.dataset.id
+    const message = this.getMessage(messageId)
+    if (!message || this.data.preparingShareId) return
+
+    if (message.activityId) {
+      this.setPreparedShare(messageId, message.activityId)
+      this.showShareUnlockTip()
+      return
+    }
+
+    this.setData({ preparingShareId: messageId })
+    callFunction('getActivityId', { messageId }).then((result) => {
+      const data = resultData(result)
+      this.updateMessage(messageId, { activityId: data.activityId })
+      this.setPreparedShare(messageId, data.activityId)
+      this.showShareUnlockTip()
+    }).catch((error) => {
+      showCloudError(error, '分享卡片生成失败')
+    }).then(() => {
+      this.setData({ preparingShareId: '' })
+    })
+  },
+
+  showShareUnlockTip() {
+    if (wx.showShareMenu) {
+      wx.showShareMenu({
+        withShareTicket: true,
+        menus: ['shareAppMessage'],
+      })
+    }
+
+    wx.showModal({
+      title: '分享后解锁发送者',
+      content: '请点击右上角“...”转发到群。发送成功后，从群里的卡片重新进入，才能解锁这一张纸条的发送者昵称。',
+      confirmText: '知道了',
+      showCancel: false,
+    })
+  },
+
+  setPreparedShare(messageId, activityId) {
+    this.setData({ sharePreparedMessageId: messageId })
+
+    if (!wx.updateShareMenu || !activityId) return
+    try {
+      wx.updateShareMenu({
+        withShareTicket: true,
+        isPrivateMessage: true,
+        activityId,
+      })
+    } catch (error) {}
+  },
+
+  onShareAppMessage() {
+    if (app.markShareReturn) app.markShareReturn()
+
+    const messageId = this.data.sharePreparedMessageId
+    if (messageId) {
+      const message = this.getMessage(messageId)
+      const activityId = message && message.activityId ? message.activityId : ''
+      const params = [`messageId=${messageId}`, `activityId=${activityId}`]
+      return {
+        title: `${this.data.groupName}里有一张匿名小纸条`,
+        path: `/pages/index/index?${params.join('&')}`,
+      }
+    }
+
+    return {
+      title: 'hi～快打开看看！群里有人对你匿名留言了',
+      path: '/pages/index/index',
+    }
+  },
+
+  askUnlockFromShare(pendingUnlock) {
+    if (!pendingUnlock || !pendingUnlock.messageId) return
+
+    wx.showModal({
+      title: '发现一张匿名纸条',
+      content: '要查看这张纸条的发送者昵称吗？不会显示头像。',
+      confirmText: '解锁发送者',
+      cancelText: '先看看',
+      success: (res) => {
+        if (res.confirm) {
+          this.unlockMessage(pendingUnlock.messageId, pendingUnlock.activityId, 'share')
+        }
+      },
+    })
+  },
+
+  unlockByAd(event) {
+    const messageId = event.currentTarget.dataset.id
+    if (!messageId || this.data.unlockingId) return
+
+    this.runRewardedAd(() => {
+      this.unlockMessage(messageId, '', 'ad')
+    })
+  },
+
+  runRewardedAd(onReward) {
+    const adUnitId = config.adUnitIds.rewarded
+    if (!adUnitId || !wx.createRewardedVideoAd) {
+      wx.showModal({
+        title: '开发模式',
+        content: '当前未配置继续入口，本次将模拟完成。',
+        confirmText: '继续',
+        success: (res) => {
+          if (res.confirm) onReward()
+        },
+      })
+      return
+    }
+
+    const videoAd = wx.createRewardedVideoAd({ adUnitId })
+    videoAd.onClose((res) => {
+      if (res && res.isEnded) {
+        onReward()
+      } else {
+        wx.showToast({ title: '完成后才能解锁哦', icon: 'none' })
+      }
+    })
+    videoAd.onError(() => {
+      wx.showToast({ title: '暂时无法继续，请稍后重试', icon: 'none' })
+    })
+    videoAd.load().then(() => videoAd.show()).catch(() => {
+      wx.showToast({ title: '暂时无法继续，请稍后重试', icon: 'none' })
+    })
+  },
+
+  unlockMessage(messageId, activityId, unlockType) {
+    this.setData({ unlockingId: messageId })
+    wx.showLoading({ title: '解锁中' })
+
+    callFunction('unlockMessage', {
+      messageId,
+      activityId: activityId || '',
+      openGid: currentOpenGid(),
+      shareTicket: unlockType === 'share' ? app.globalData.shareTicket || '' : '',
+      unlockType,
+    }).then((result) => {
+      const data = resultData(result)
+      const senderNickname = data.senderNickname || '暂未确认昵称'
+      this.updateMessage(messageId, {
+        unlocked: true,
+        senderNickname,
+      })
+      if (this.data.sharePreparedMessageId === messageId) {
+        this.setData({ sharePreparedMessageId: '' })
+      }
+      wx.showModal({
+        title: '发送者昵称已解锁',
+        content: data.senderNickname ? `这张纸条的发送者昵称是：${data.senderNickname}` : '发送者暂未确认昵称，暂时无法显示。',
+        confirmText: '收好',
+        showCancel: false,
+      })
+    }).catch((error) => {
+      showCloudError(error, unlockType === 'share' ? '分享链接已失效，请重新分享' : '解锁失败')
+    }).then(() => {
+      wx.hideLoading()
+      this.setData({ unlockingId: '' })
+      this.refreshMessages()
+    })
+  },
+
+  reportMessage(event) {
+    const messageId = event.currentTarget.dataset.id
+    if (!messageId) return
+
+    wx.showActionSheet({
+      itemList: ['不友善内容', '骚扰或刷屏', '泄露隐私', '其他问题'],
+      success: (res) => {
+        const reasons = ['unfriendly', 'spam', 'privacy', 'other']
+        callFunction('reportMessage', {
+          messageId,
+          reason: reasons[res.tapIndex] || 'other',
+        }).then(() => {
+          wx.showToast({ title: '已收到反馈', icon: 'success' })
+        }).catch((error) => {
+          showCloudError(error, '举报失败，请稍后再试')
+        })
+      },
+    })
+  },
+})

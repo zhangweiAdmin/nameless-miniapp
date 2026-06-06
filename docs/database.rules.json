@@ -1,0 +1,34 @@
+{
+  "user_profiles": {
+    ".read": "doc._openid == auth.openid",
+    ".write": "doc._openid == auth.openid"
+  },
+  "messages": {
+    ".read": true,
+    ".write": "doc._openid == auth.openid"
+  },
+  "like_records": {
+    ".read": true,
+    ".write": "auth != null"
+  },
+  "reaction_records": {
+    ".read": true,
+    ".write": "auth != null"
+  },
+  "unlock_records": {
+    ".read": "doc.unlockedByOpenId == auth.openid",
+    ".write": "auth != null"
+  },
+  "group_bindings": {
+    ".read": true,
+    ".write": "doc.creatorOpenId == auth.openid"
+  },
+  "share_activities": {
+    ".read": "auth != null",
+    ".write": "auth != null"
+  },
+  "reports": {
+    ".read": false,
+    ".write": "auth != null"
+  }
+}
