@@ -6,7 +6,7 @@
     <view class="paper-plane">🕊️</view>
     <view class="hero-copy">
       <view class="page-title">投递悄悄话纸条</view>
-      <view class="page-subtitle">不露昵称头像投纸条，轻松没烦恼，回应随缘了，隐私我们保</view>
+      <view class="page-subtitle">匿名小纸条，轻松没烦恼，回应随缘了，自在乐逍遥</view>
     </view>
   </view>
 
@@ -29,6 +29,15 @@
     <view wx:if="{{targetName}}" class="target-preview" bindtap="editTargetName" hover-class="pressing">
       <text>写给：{{targetName}}</text>
       <text class="target-edit">修改</text>
+    </view>
+    <view wx:if="{{activeCategory == 'confess'}}" class="unlock-setting" bindtap="toggleAllowUnlock" hover-class="pressing">
+      <view class="unlock-setting-copy">
+        <view class="unlock-setting-title">允许查看发送者</view>
+        <view class="unlock-setting-note">默认开启；取消后，首页不展示解锁入口。</view>
+      </view>
+      <view class="unlock-check {{allowUnlock ? 'checked' : ''}}">
+        <text wx:if="{{allowUnlock}}">✓</text>
+      </view>
     </view>
   </view>
 
@@ -64,10 +73,10 @@
   <view class="section glass-card custom-section">
     <view class="section-head">
       <view>
-        <view class="section-title">模版不够自己来凑</view>
+        <view class="section-title">自定义文案</view>
         <view class="section-note">别怕，写啥都行，哪怕写“此处省略120字”</view>
       </view>
-      <view class="ghost-btn custom-entry {{checkingCustomEntry ? 'disabled' : ''}}" bindtap="startCustomWriting" hover-class="pressing">{{checkingCustomEntry ? '准备中' : (showCustomInput ? '继续写' : '自定义文案')}}</view>
+      <view class="ghost-btn custom-entry {{checkingCustomEntry ? 'disabled' : ''}}" bindtap="startCustomWriting" hover-class="pressing">{{checkingCustomEntry ? '准备中' : (showCustomInput ? '继续写' : '填写文案')}}</view>
     </view>
 
     <view wx:if="{{showCustomInput}}" class="textarea-wrap">

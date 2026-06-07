@@ -99,6 +99,7 @@ exports.main = async (event) => {
   const openGid = String(event.openGid || '').trim()
   const isTemplate = !!event.isTemplate
   const customAccessGranted = !!event.customAccessGranted || !!event.customRewarded
+  const allowUnlock = category === 'confess' ? event.allowUnlock !== false : true
 
   if (!openid) return { code: 401, message: '请先登录' }
   if (!openGid) return { code: 4005, message: '当前群信息还没准备好，请返回首页重新进入后再试' }
@@ -147,6 +148,7 @@ exports.main = async (event) => {
       category,
       openGid,
       isTemplate,
+      allowUnlock,
       likeCount: 0,
       reactions: DEFAULT_REACTIONS,
       unlockCount: 0,

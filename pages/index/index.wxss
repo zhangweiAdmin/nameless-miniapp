@@ -297,6 +297,11 @@
   border: 1rpx dashed rgba(203, 169, 129, 0.52);
 }
 
+.identity-box.no-unlock {
+  background: linear-gradient(135deg, rgba(255, 244, 248, 0.82), rgba(255, 248, 235, 0.9));
+  border: 1rpx solid rgba(229, 157, 179, 0.28);
+}
+
 .identity-label {
   color: #ad927c;
   font-size: 22rpx;

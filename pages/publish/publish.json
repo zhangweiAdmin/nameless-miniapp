@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "投递纸条",
+  "navigationBarTitleText": "投递悄悄话纸条",
   "backgroundTextStyle": "dark",
   "usingComponents": {
     "share-entry": "/components/share-entry/share-entry"

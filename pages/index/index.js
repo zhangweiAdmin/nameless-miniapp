@@ -101,6 +101,7 @@ function decorateMessage(item) {
     formattedTime: formatTime(createTime),
     liked: !!item.liked,
     unlocked: !!item.unlocked || !!item.isOwner,
+    allowUnlock: item.allowUnlock !== false,
     senderNickname: item.senderNickname || (item.isOwner ? '我自己' : ''),
     activityId: item.activityId || '',
     reactionList: buildReactionList(item.reactions || {}, item.reactedEmotions || []),

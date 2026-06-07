@@ -7,7 +7,7 @@
     <view class="hero-title-row">
       <view>
         <view class="hero-title">{{groupName}}</view>
-        <view class="hero-subtitle">群里说话怕尴尬，悄悄话有办法。夸夸安慰随心发，点赞多了往前挂。</view>
+        <view class="hero-subtitle">群里说话怕尴尬，悄悄匿名有办法。夸夸安慰随心发，点赞多了往前挂。</view>
       </view>
       <view class="hero-badge">✉️</view>
     </view>
@@ -93,28 +93,38 @@
           </view>
 
           <block wx:if="{{!item.isOwner}}">
-            <view class="identity-box unlocked" wx:if="{{item.unlocked}}">
+            <view class="identity-box no-unlock" wx:if="{{!item.allowUnlock}}">
               <view>
-                <view class="identity-label">发送者昵称</view>
-                <view class="identity-name">{{item.senderNickname || '暂未确认昵称'}}</view>
+                <view class="identity-label">发送者没有开放查看</view>
+                <view class="lock-tip">这张纸条只想把话留在盒子里。</view>
               </view>
-              <view class="identity-mark">🌙</view>
+              <view class="identity-mark">💌</view>
             </view>
 
-            <view class="identity-box locked" wx:else>
-              <view class="lock-copy">
-                <view class="identity-label">发送者藏着</view>
-                <view class="lock-tip">解锁后显示发送者昵称，不显示头像。</view>
+            <block wx:else>
+              <view class="identity-box unlocked" wx:if="{{item.unlocked}}">
+                <view>
+                  <view class="identity-label">发送者昵称</view>
+                  <view class="identity-name">{{item.senderNickname || '暂未确认昵称'}}</view>
+                </view>
+                <view class="identity-mark">🌙</view>
               </view>
-              <view class="unlock-actions">
-                <view
-                  class="mini-action {{preparingShareId == item._id ? 'disabled' : ''}}"
-                  data-id="{{item._id}}"
-                  bindtap="prepareShareUnlock"
-                  hover-class="pressing"
-                >{{preparingShareId == item._id ? '准备中' : '解锁发送者'}}</view>
+
+              <view class="identity-box locked" wx:else>
+                <view class="lock-copy">
+                  <view class="identity-label">发送者藏着</view>
+                  <view class="lock-tip">解锁后显示发送者昵称，不显示头像。</view>
+                </view>
+                <view class="unlock-actions">
+                  <view
+                    class="mini-action {{preparingShareId == item._id ? 'disabled' : ''}}"
+                    data-id="{{item._id}}"
+                    bindtap="prepareShareUnlock"
+                    hover-class="pressing"
+                  >{{preparingShareId == item._id ? '准备中' : '解锁发送者'}}</view>
+                </view>
               </view>
-            </view>
+            </block>
           </block>
 
           <view class="report-link" data-id="{{item._id}}" bindtap="reportMessage" hover-class="pressing">举报</view>

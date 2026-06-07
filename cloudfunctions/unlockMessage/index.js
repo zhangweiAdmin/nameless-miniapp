@@ -95,6 +95,7 @@ exports.main = async (event) => {
   if (!message || message.status !== 'normal') return { code: 404, message: '纸条不存在或已删除' }
   const senderNickname = await getPublisherNickname(message, messageId)
   if (message._openid === openid) return { code: 0, senderNickname: senderNickname || '我自己', isOwner: true }
+  if (message.allowUnlock === false) return { code: 403, message: '发送者没有开放查看' }
 
   if (unlockType === 'share') {
     if (!activityId) return { code: 4002, message: '分享链接已失效，请重新分享' }

@@ -47,6 +47,7 @@ exports.main = async (event) => {
   const message = await getMessage(messageId)
   if (!message || message.status !== 'normal') return { code: 404, message: '纸条不存在或已删除' }
   if (!message.openGid) return { code: 4003, message: '这张纸条还没有绑定群' }
+  if (message.allowUnlock === false) return { code: 4004, message: '发送者没有开放查看' }
 
   const now = new Date()
   const activityId = crypto.randomBytes(12).toString('hex')

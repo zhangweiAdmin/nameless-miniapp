@@ -183,9 +183,10 @@ exports.main = async (event) => {
     const messageNickname = cleanNickname(item.senderNickname)
     const unlockNickname = unlockRecord ? cleanNickname(unlockRecord.senderNickname) : ''
     const profileNickname = profileNicknameMap[item._openid] || ''
+    const allowUnlock = item.allowUnlock !== false
     const senderNickname = isOwner
       ? messageNickname || profileNickname || '我自己'
-      : unlockRecord
+      : unlockRecord && allowUnlock
         ? unlockNickname || messageNickname || profileNickname || ''
         : ''
     return {
@@ -197,10 +198,11 @@ exports.main = async (event) => {
       likeCount: item.likeCount || 0,
       reactions: normalizeReactions(item.reactions),
       unlockCount: item.unlockCount || 0,
+      allowUnlock,
       createTime: item.createTime,
       liked: likedIds.indexOf(item._id) > -1,
       reactedEmotions: reactionMap[item._id] || [],
-      unlocked: isOwner || !!unlockRecord,
+      unlocked: isOwner || (allowUnlock && !!unlockRecord),
       senderNickname,
       isOwner,
     }

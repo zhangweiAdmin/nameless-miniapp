@@ -142,6 +142,7 @@ Page({
     checkingCustomEntry: false,
     hasGroupContext: false,
     groupName: '群隐盒悄悄话',
+    allowUnlock: true,
   },
 
   onLoad(options) {
@@ -273,6 +274,7 @@ Page({
       isTemplate: true,
       contentLength: 0,
       targetName: '',
+      allowUnlock: true,
     })
   },
 
@@ -298,6 +300,7 @@ Page({
       pendingTargetCategory: categoryKey,
       targetDraft: '',
       targetDraftLength: 0,
+      allowUnlock: true,
     })
   },
 
@@ -344,6 +347,7 @@ Page({
       pendingTargetCategory: '',
       targetDraft: '',
       targetDraftLength: 0,
+      allowUnlock: true,
     })
   },
 
@@ -358,6 +362,11 @@ Page({
   },
 
   noop() {},
+
+  toggleAllowUnlock() {
+    if (this.data.activeCategory !== 'confess') return
+    this.setData({ allowUnlock: !this.data.allowUnlock })
+  },
 
   selectTemplate(event) {
     if (!this.data.activeCategory || !this.data.targetName) {
@@ -505,6 +514,7 @@ Page({
       targetName: this.data.targetName,
       isTemplate: this.data.isTemplate,
       customAccessGranted: !!customAccessGranted,
+      allowUnlock: this.data.activeCategory === 'confess' ? this.data.allowUnlock : true,
     }).then((result) => {
       if (!result.messageId) {
         throw new Error('发布接口没有返回消息 ID，请重新部署 publishMessage 云函数')
