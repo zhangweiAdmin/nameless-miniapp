@@ -4,7 +4,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 const _ = db.command
-const VALID_CATEGORIES = ['praise', 'comfort', 'thanks', 'fun', 'encourage']
+const VALID_CATEGORIES = ['praise', 'comfort', 'thanks', 'confess', 'fun', 'encourage']
 const DEFAULT_REACTIONS = { '😊': 0, '😂': 0, '🙏': 0, '🤗': 0 }
 const MAX_MESSAGE_LENGTH = 120
 const MAX_TARGET_NAME_LENGTH = 8

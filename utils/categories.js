@@ -2,6 +2,7 @@ const CATEGORIES = [
   { key: 'praise', label: '夸夸', icon: '✨', tone: '#F2A26E' },
   { key: 'comfort', label: '安抚', icon: '☁️', tone: '#91A989' },
   { key: 'thanks', label: '感谢', icon: '🫶', tone: '#D89A85' },
+  { key: 'confess', label: '表白', icon: '💌', tone: '#E58BA6' },
   { key: 'fun', label: '调侃', icon: '🎈', tone: '#C9A96A' },
   { key: 'encourage', label: '鼓励', icon: '🌱', tone: '#7CA982' },
 ]
@@ -136,6 +137,42 @@ const THANKS_PATTERNS = [
   '谢谢你让我在{scene}少慌了一点。',
 ]
 
+const CONFESS_ANGLES = [
+  { topic: '心动瞬间', scene: '你认真说话的时候', feeling: '心里会悄悄亮一下', reason: '把普通时刻变得很特别', boundary: '不想给你压力，只想让你知道', image: '像一颗小灯突然亮起来' },
+  { topic: '相处感觉', scene: '和你待在同一个场合', feeling: '整个人会放松很多', reason: '让气氛变得自然又舒服', boundary: '如果你愿意，我们可以慢慢靠近', image: '像风刚好吹到窗边' },
+  { topic: '温柔细节', scene: '你照顾到别人感受时', feeling: '会忍不住多看你一眼', reason: '把体贴藏在很小的动作里', boundary: '这份喜欢很轻，不会打扰你', image: '像糖纸里藏着一点甜' },
+  { topic: '可靠感', scene: '大家有点慌的时候', feeling: '会觉得你很让人安心', reason: '总能稳稳接住局面', boundary: '想把这份欣赏认真告诉你', image: '像人群里一块安稳的坐标' },
+  { topic: '笑容', scene: '你笑起来的时候', feeling: '世界好像变轻了一点', reason: '让人忘记刚才的小烦恼', boundary: '不求回应，只想把喜欢放得坦荡一点', image: '像晴天突然落在身边' },
+  { topic: '气质', scene: '你安静出现的时候', feeling: '很容易被你吸引', reason: '有一种不用解释的特别', boundary: '希望这句话不会让你为难', image: '像很轻但很难忽略的光' },
+  { topic: '陪伴感', scene: '你在旁边的时候', feeling: '心里会多一点底气', reason: '让普通日子也有被照亮的感觉', boundary: '愿意的话，我们可以从多聊几句开始', image: '像口袋里多了一颗暖石头' },
+  { topic: '共同爱好', scene: '聊到喜欢的东西时', feeling: '会觉得我们离得更近一点', reason: '你眼里的热爱很动人', boundary: '想和你分享更多小小的日常', image: '像两条线轻轻碰到一起' },
+  { topic: '勇敢真诚', scene: '你表达自己时', feeling: '会被那份真诚打动', reason: '不刻意讨好也很有力量', boundary: '这句话只是温柔地递给你', image: '像一封没有催促的信' },
+  { topic: '未来期待', scene: '想到之后还能见到你', feeling: '会有一点偷偷期待', reason: '你让明天多了一点好奇', boundary: '如果你也愿意，就让故事慢慢往前走', image: '像日历上被悄悄圈起的一天' },
+]
+
+const CONFESS_PATTERNS = [
+  '想认真说一句，你的{topic}真的很让人心动。',
+  '每次{scene}，我都会多记住你一点。',
+  '不是突然喜欢的，是因为你总能{reason}。',
+  '{boundary}，我对你有一点很真诚的好感。',
+  '你给我的感觉{image}，轻轻的，但很明显。',
+  '如果这算表白，那我想把它说得温柔一点。',
+  '喜欢你这件事，不吵不闹，但一直在心里冒泡。',
+  '{scene}的时候，我会觉得你和别人不太一样。',
+  '你的{topic}像一个小开关，会把我的好心情打开。',
+  '我不想把话说得太满，只想说我很在意你。',
+  '{reason}这件事，让我对你越来越有好感。',
+  '如果可以，我想把更多温柔的瞬间留给你。',
+  '你不用做什么特别的事，{topic}已经足够让我心动。',
+  '这份喜欢没有催促，只是想让你被好好看见。',
+  '我发现自己会在{scene}之后，偷偷开心很久。',
+  '你身上的{topic}，是我很难忽略的心动理由。',
+  '{boundary}，但我真的很想靠近你一点点。',
+  '如果你也刚好愿意，我们可以从一句普通聊天开始。',
+  '你让普通的群聊，多了一点让我期待的理由。',
+  '这张纸条没有别的意思，就是想把喜欢认真交给你。',
+]
+
 const FUN_ANGLES = [
   { topic: '工作状态', scene: '认真起来', quirk: '像突然开启隐藏模式', detail: '效率和表情形成强烈反差', image: '建议低调一点，太显眼了' },
   { topic: '长相氛围', scene: '一出现', quirk: '自带镜头感', detail: '连普通表情都像有设计', image: '建议给群聊交一点出场费' },
@@ -212,6 +249,7 @@ const TEMPLATES = {
   praise: buildTemplates(PRAISE_ANGLES, PRAISE_PATTERNS),
   comfort: buildTemplates(COMFORT_ANGLES, COMFORT_PATTERNS),
   thanks: buildTemplates(THANKS_ANGLES, THANKS_PATTERNS),
+  confess: buildTemplates(CONFESS_ANGLES, CONFESS_PATTERNS),
   fun: buildTemplates(FUN_ANGLES, FUN_PATTERNS),
   encourage: buildTemplates(ENCOURAGE_ANGLES, ENCOURAGE_PATTERNS),
 }

@@ -25,6 +25,10 @@ const TARGET_PROMPTS = {
     title: '想感谢谁？',
     placeholder: '比如：今天帮忙的人',
   },
+  confess: {
+    title: '想表白谁？',
+    placeholder: '比如：那个让你心动的人',
+  },
   fun: {
     title: '想调侃谁？',
     placeholder: '比如：表情包大户',
