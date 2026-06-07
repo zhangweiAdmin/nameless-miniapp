@@ -1,5 +1,6 @@
 const config = require('./utils/config')
 const { readUserProfile } = require('./utils/profile')
+const { ensureShareTicketMenu } = require('./utils/share')
 
 const DEFAULT_GROUP_INFO = {
   customName: '群隐盒',
@@ -8,6 +9,9 @@ const DEFAULT_GROUP_INFO = {
   openGid: '',
 }
 const KEEP_GROUP_AFTER_SHARE_MS = 2 * 60 * 1000
+const MESSAGE_CARD_SCENES = [1007, 1008, 1044]
+const GROUP_CHAT_SCENES = [1008, 1044, 1158]
+const SEARCH_SCENES = [1005, 1006, 1027]
 
 function defaultGroupInfo() {
   return Object.assign({}, DEFAULT_GROUP_INFO)
@@ -26,13 +30,43 @@ function hasGroupEntry(options) {
   return !!(options && ((options.query && options.query.openGid) || options.shareTicket))
 }
 
-function shouldKeepGroupAfterShare(globalData) {
-  const until = Number(globalData.keepGroupOnPlainShowUntil) || 0
-  if (until && until > Date.now()) {
-    globalData.keepGroupOnPlainShowUntil = 0
-    return true
+function hasGroupShareMarker(options) {
+  return !!(options && options.query && options.query.fromGroupShare === '1')
+}
+
+function isMessageCardScene(options) {
+  const scene = Number(options && options.scene)
+  return MESSAGE_CARD_SCENES.indexOf(scene) > -1
+}
+
+function isGroupChatScene(options) {
+  const scene = Number(options && options.scene)
+  return GROUP_CHAT_SCENES.indexOf(scene) > -1
+}
+
+function isSearchScene(options) {
+  const scene = Number(options && options.scene)
+  return SEARCH_SCENES.indexOf(scene) > -1
+}
+
+function syncEntryScene(globalData, options) {
+  const isGroupChatEntry = hasGroupEntry(options) || hasGroupShareMarker(options) || isGroupChatScene(options)
+  globalData.isGroupChatEntry = isGroupChatEntry
+  globalData.entrySource = isGroupChatEntry ? 'group' : (isSearchScene(options) ? 'search' : 'normal')
+  if (isGroupChatEntry) {
+    globalData.groupEntryVersion = (globalData.groupEntryVersion || 0) + 1
   }
-  return false
+}
+
+function shouldKeepGroupAfterShare(globalData, options) {
+  const until = Number(globalData.keepGroupOnPlainShowUntil) || 0
+  if (!until) return false
+
+  globalData.keepGroupOnPlainShowUntil = 0
+  if (until <= Date.now()) return false
+  if (hasGroupShareMarker(options)) return false
+  if (isMessageCardScene(options)) return false
+  return true
 }
 
 function clearGroupContext(globalData) {
@@ -46,12 +80,16 @@ App({
     pendingUnlock: null,
     needRefreshMessages: false,
     keepGroupOnPlainShowUntil: 0,
+    isGroupChatEntry: false,
+    entrySource: 'normal',
+    groupEntryVersion: 0,
     userProfile: null,
     groupInfo: defaultGroupInfo(),
   },
 
   onLaunch(options) {
     this.globalData.userProfile = readUserProfile()
+    syncEntryScene(this.globalData, options)
 
     if (!hasGroupEntry(options)) {
       clearGroupContext(this.globalData)
@@ -71,18 +109,17 @@ App({
       wx.cloud.init(cloudOptions)
     }
 
-    if (wx.showShareMenu) {
-      wx.showShareMenu({
-        withShareTicket: true,
-        menus: ['shareAppMessage'],
-      })
-    }
+    ensureShareTicketMenu()
 
     this.showColdStartAd()
   },
 
   onShow(options) {
-    if (!hasGroupEntry(options) && !shouldKeepGroupAfterShare(this.globalData)) {
+    syncEntryScene(this.globalData, options)
+
+    if (hasGroupEntry(options)) {
+      this.globalData.keepGroupOnPlainShowUntil = 0
+    } else if (!shouldKeepGroupAfterShare(this.globalData, options)) {
       clearGroupContext(this.globalData)
     }
 

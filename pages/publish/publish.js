@@ -4,6 +4,7 @@ const { CATEGORIES, TEMPLATES } = require('../../utils/categories')
 const { callFunction, showCloudError } = require('../../utils/cloud')
 const { normalizeCloudDate } = require('../../utils/format')
 const { readUserProfile } = require('../../utils/profile')
+const { buildSharePayload, ensureShareTicketMenu } = require('../../utils/share')
 
 function charLength(text) {
   return Array.from(text || '').length
@@ -81,20 +82,29 @@ function currentOpenGid() {
   return groupInfo.openGid || ''
 }
 
-function groupSharePath() {
-  return '/pages/index/index'
+function shuffledList(list) {
+  const result = list.slice()
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1))
+    const temp = result[index]
+    result[index] = result[swapIndex]
+    result[swapIndex] = temp
+  }
+  return result
 }
 
-function getTemplateBatch(categoryKey, batchIndex) {
+function getTemplateBatch(categoryKey, previousTemplates) {
   const list = TEMPLATES[categoryKey] || []
   if (!list.length) return []
 
-  const start = (batchIndex * TEMPLATE_BATCH_SIZE) % list.length
-  const batch = []
-  for (let offset = 0; offset < TEMPLATE_BATCH_SIZE; offset += 1) {
-    batch.push(list[(start + offset) % list.length])
-  }
-  return batch
+  const previousMap = {}
+  ;(previousTemplates || []).forEach((item) => {
+    previousMap[item] = true
+  })
+
+  const freshPool = list.filter((item) => !previousMap[item])
+  const pool = freshPool.length >= TEMPLATE_BATCH_SIZE ? freshPool : list
+  return shuffledList(pool).slice(0, TEMPLATE_BATCH_SIZE)
 }
 
 Page({
@@ -124,13 +134,15 @@ Page({
     customQuotaLeft: config.customDailyQuota || 3,
     customShareUnlocked: false,
     awaitingCustomShareUnlock: false,
+    customSharePromptVisible: false,
     checkingCustomEntry: false,
     hasGroupContext: false,
     groupName: '群隐盒',
   },
 
-  onLoad() {
+  onLoad(options) {
     if (!this.ensureUserProfileOrLeave()) return
+    this.captureGroupFromQuery(options)
     this.syncGroupContext()
     this.refreshCustomQuota()
   },
@@ -178,23 +190,14 @@ Page({
       hasGroupContext,
       groupName: groupInfo.customName || '群隐盒',
     })
+  },
 
-    if (!hasGroupContext) {
-      wx.showModal({
-        title: '先从群里进入',
-        content: '每个群都有自己的群隐盒。请先把小程序分享到群，再从群里的卡片进入后投递。',
-        confirmText: '知道了',
-        showCancel: false,
-        success: () => {
-          const pages = getCurrentPages()
-          if (pages.length > 1) {
-            wx.navigateBack()
-          } else {
-            wx.switchTab({ url: '/pages/index/index' })
-          }
-        },
-      })
-    }
+  captureGroupFromQuery(options) {
+    if (!options || !options.openGid) return
+    app.globalData.groupInfo = Object.assign({}, currentGroupInfo(), {
+      customName: options.groupName ? decodeURIComponent(options.groupName) : currentGroupInfo().customName || '群隐盒',
+      openGid: options.openGid,
+    })
   },
 
   refreshCustomQuota() {
@@ -239,8 +242,11 @@ Page({
 
   clearPendingCustomShareAction() {
     this.pendingCustomShareAction = null
-    if (this.data.awaitingCustomShareUnlock) {
-      this.setData({ awaitingCustomShareUnlock: false })
+    if (this.data.awaitingCustomShareUnlock || this.data.customSharePromptVisible) {
+      this.setData({
+        awaitingCustomShareUnlock: false,
+        customSharePromptVisible: false,
+      })
     }
   },
 
@@ -322,7 +328,7 @@ Page({
 
     this.setData({
       activeCategory: categoryKey,
-      templates: getTemplateBatch(categoryKey, 0),
+      templates: getTemplateBatch(categoryKey),
       templateBatchIndex: 0,
       selectedTemplateIndex: -1,
       content: '',
@@ -376,12 +382,10 @@ Page({
     const list = TEMPLATES[this.data.activeCategory] || []
     if (list.length <= TEMPLATE_BATCH_SIZE) return
 
-    const totalBatches = Math.ceil(list.length / TEMPLATE_BATCH_SIZE)
-    const nextBatchIndex = (this.data.templateBatchIndex + 1) % totalBatches
     this.clearPendingCustomShareAction()
     this.setData({
-      templates: getTemplateBatch(this.data.activeCategory, nextBatchIndex),
-      templateBatchIndex: nextBatchIndex,
+      templates: getTemplateBatch(this.data.activeCategory, this.data.templates),
+      templateBatchIndex: this.data.templateBatchIndex + 1,
       selectedTemplateIndex: -1,
       content: '',
       showCustomInput: false,
@@ -447,10 +451,6 @@ Page({
     if (this.data.submitting) return
 
     const content = (this.data.content || '').trim()
-    if (!this.data.hasGroupContext || !currentOpenGid()) {
-      wx.showToast({ title: '先从群里的卡片进入', icon: 'none' })
-      return
-    }
 
     if (!this.syncUserProfileState()) {
       wx.showModal({
@@ -535,7 +535,9 @@ Page({
       wx.hideLoading()
       wx.showModal({
         title: '投递失败',
-        content: error && error.message ? error.message : '匿名投递失败，请稍后再试',
+        content: error && error.code === 4005
+          ? '当前群信息还没准备好，请返回首页重新进入后再试。'
+          : (error && error.message ? error.message : '匿名投递失败，请稍后再试'),
         confirmText: '知道了',
         showCancel: false,
       })
@@ -551,20 +553,16 @@ Page({
     }
 
     this.pendingCustomShareAction = afterShare
-    this.setData({ awaitingCustomShareUnlock: true })
-    if (wx.showShareMenu) {
-      wx.showShareMenu({
-        withShareTicket: true,
-        menus: ['shareAppMessage'],
-      })
-    }
-
-    wx.showModal({
-      title: '分享后继续写',
-      content: '请点击右上角“...”把小程序分享到任意微信群，分享后回到这里就可以继续写自己的话。',
-      confirmText: '知道了',
-      showCancel: false,
+    this.setData({
+      awaitingCustomShareUnlock: true,
+      customSharePromptVisible: true,
     })
+    ensureShareTicketMenu()
+  },
+
+  closeCustomSharePrompt() {
+    if (this.data.submitting) return
+    this.clearPendingCustomShareAction()
   },
 
   grantCustomShareAccess() {
@@ -574,6 +572,7 @@ Page({
     this.setData({
       customShareUnlocked: true,
       awaitingCustomShareUnlock: false,
+      customSharePromptVisible: false,
     })
 
     wx.showToast({ title: '今天可以继续写啦', icon: 'none' })
@@ -585,19 +584,14 @@ Page({
   },
 
   onShareAppMessage() {
+    ensureShareTicketMenu()
     if (app.markShareReturn) app.markShareReturn()
 
     if (this.data.awaitingCustomShareUnlock) {
       this.grantCustomShareAccess()
-      return {
-        title: '匿名说真话，心里不慌张',
-        path: '/pages/index/index',
-      }
+      return buildSharePayload()
     }
 
-    return {
-      title: '匿名说真话，心里不慌张',
-      path: groupSharePath(),
-    }
+    return buildSharePayload()
   },
 })

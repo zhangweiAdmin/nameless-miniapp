@@ -3,6 +3,7 @@ const config = require('../../utils/config')
 const { CATEGORIES, CATEGORY_MAP, REACTIONS } = require('../../utils/categories')
 const { callFunction, showCloudError } = require('../../utils/cloud')
 const { formatTime, normalizeCloudDate } = require('../../utils/format')
+const { buildIndexSharePath, buildSharePayload, ensureShareTicketMenu } = require('../../utils/share')
 const {
   MAX_NICKNAME_LENGTH,
   getNicknameError,
@@ -16,6 +17,10 @@ const FEATURE_FLAGS = config.featureFlags || {}
 
 function resultData(result) {
   return result.data || result
+}
+
+function rpxToPx(rpx, windowWidth) {
+  return rpx * windowWidth / 750
 }
 
 function buildReactionList(reactions, reactedEmotions) {
@@ -78,6 +83,7 @@ Page({
   data: {
     groupName: '群隐盒',
     hasGroupContext: false,
+    isGroupChatEntry: false,
     activeOpenGid: '',
     categories: [ALL_CATEGORY].concat(CATEGORIES),
     activeCategory: '',
@@ -100,18 +106,35 @@ Page({
     nicknamePromptError: '',
     nicknameSaving: false,
     nicknameMaxLength: MAX_NICKNAME_LENGTH,
+    fabReady: false,
+    fabX: 0,
+    fabY: 0,
     enableDirectUnlock: !!FEATURE_FLAGS.enableDirectUnlock && !!config.adUnitIds.rewarded,
   },
 
   onLoad(options) {
     this.routeOpenGid = options && options.openGid ? options.openGid : ''
+    this.groupEntryVersion = app.globalData.groupEntryVersion || 0
     this.captureGroupFromQuery(options)
     this.capturePendingUnlock(options)
     this.syncUserProfileState()
     this.resolveGroupContextAndRefresh()
   },
 
+  onReady() {
+    this.initFloatingFabPosition()
+  },
+
   onShow() {
+    const groupEntryVersion = app.globalData.groupEntryVersion || 0
+    if (groupEntryVersion !== this.groupEntryVersion) {
+      this.groupEntryVersion = groupEntryVersion
+      this.resolveGroupContextAndRefresh().then(() => {
+        this.consumePendingUnlock()
+      })
+      return
+    }
+
     if (app.globalData.shareTicket && app.globalData.shareTicket !== this.boundShareTicket) {
       this.resolveGroupContextAndRefresh().then(() => {
         this.consumePendingUnlock()
@@ -254,6 +277,70 @@ Page({
 
   noop() {},
 
+  initFloatingFabPosition() {
+    const windowInfo = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync()
+    const windowWidth = windowInfo.windowWidth || 375
+    const windowHeight = windowInfo.windowHeight || 667
+    const safeBottom = windowInfo.safeArea ? Math.max(0, windowHeight - windowInfo.safeArea.bottom) : 0
+    const fabWidth = rpxToPx(226, windowWidth)
+    const fabHeight = rpxToPx(96, windowWidth)
+    const marginX = rpxToPx(32, windowWidth)
+    const marginBottom = rpxToPx(48, windowWidth) + safeBottom
+
+    this.setData({
+      fabReady: true,
+      fabX: Math.max(marginX, windowWidth - fabWidth - marginX),
+      fabY: Math.max(marginX, windowHeight - fabHeight - marginBottom),
+    })
+  },
+
+  handleFabTap() {
+    if (this.fabMoved) return
+    this.goPublish()
+  },
+
+  onFabTouchStart() {
+    this.fabMoved = false
+    this.fabStartX = this.data.fabX
+    this.fabStartY = this.data.fabY
+  },
+
+  onFabMove(event) {
+    const detail = event.detail || {}
+    if (typeof detail.x !== 'number' || typeof detail.y !== 'number') return
+
+    const nextX = Math.round(detail.x)
+    const nextY = Math.round(detail.y)
+    this.pendingFabX = nextX
+    this.pendingFabY = nextY
+
+    if (Math.abs(nextX - (this.fabStartX || 0)) > 8 || Math.abs(nextY - (this.fabStartY || 0)) > 8) {
+      this.fabMoved = true
+    }
+
+    clearTimeout(this.fabMoveTimer)
+    this.fabMoveTimer = setTimeout(() => {
+      this.setData({
+        fabX: this.pendingFabX,
+        fabY: this.pendingFabY,
+      })
+    }, 80)
+  },
+
+  onFabTouchEnd() {
+    clearTimeout(this.fabMoveTimer)
+    if (typeof this.pendingFabX === 'number' && typeof this.pendingFabY === 'number') {
+      this.setData({
+        fabX: this.pendingFabX,
+        fabY: this.pendingFabY,
+      })
+    }
+
+    setTimeout(() => {
+      this.fabMoved = false
+    }, 120)
+  },
+
   consumePendingUnlock() {
     if (!app.globalData.pendingUnlock) return
 
@@ -381,6 +468,7 @@ Page({
     this.setData({
       groupName: groupInfo.customName || '群隐盒',
       hasGroupContext: !!openGid,
+      isGroupChatEntry: !!app.globalData.isGroupChatEntry,
       activeOpenGid: openGid,
     })
     return groupChanged
@@ -478,14 +566,21 @@ Page({
       return
     }
 
+    const groupInfo = currentGroupInfo()
+    const params = [
+      `openGid=${encodeURIComponent(groupInfo.openGid || '')}`,
+      `groupName=${encodeURIComponent(groupInfo.customName || '群隐盒')}`,
+    ]
+    const publishUrl = `/pages/publish/publish?${params.join('&')}`
+
     if (!this.syncUserProfileState()) {
       this.authorizeProfile().then((profile) => {
-        if (profile) wx.navigateTo({ url: '/pages/publish/publish' })
+        if (profile) wx.navigateTo({ url: publishUrl })
       })
       return
     }
 
-    wx.navigateTo({ url: '/pages/publish/publish' })
+    wx.navigateTo({ url: publishUrl })
   },
 
   showProfileEntryTip() {
@@ -498,12 +593,7 @@ Page({
   },
 
   showGroupEntryTip() {
-    if (wx.showShareMenu) {
-      wx.showShareMenu({
-        withShareTicket: true,
-        menus: ['shareAppMessage'],
-      })
-    }
+    ensureShareTicketMenu()
 
     wx.showModal({
       title: '先放进群里',
@@ -604,16 +694,11 @@ Page({
   },
 
   showShareUnlockTip() {
-    if (wx.showShareMenu) {
-      wx.showShareMenu({
-        withShareTicket: true,
-        menus: ['shareAppMessage'],
-      })
-    }
+    ensureShareTicketMenu()
 
     wx.showModal({
       title: '分享后解锁发送者',
-      content: '请点击右上角“...”转发到群。发送成功后，从群里的卡片重新进入，才能解锁这一张纸条的发送者昵称。',
+      content: '请点击右上角“...”转发到群。触发转发后回到这里，会自动解锁这一张纸条的发送者昵称。',
       confirmText: '知道了',
       showCancel: false,
     })
@@ -633,23 +718,34 @@ Page({
   },
 
   onShareAppMessage() {
+    ensureShareTicketMenu()
     if (app.markShareReturn) app.markShareReturn()
 
     const messageId = this.data.sharePreparedMessageId
     if (messageId) {
       const message = this.getMessage(messageId)
       const activityId = message && message.activityId ? message.activityId : ''
-      const params = [`messageId=${messageId}`, `activityId=${activityId}`]
-      return {
-        title: `${this.data.groupName}里有一张匿名小纸条`,
-        path: `/pages/index/index?${params.join('&')}`,
-      }
+      this.scheduleUnlockAfterShare(messageId, activityId)
+      return buildSharePayload({
+        path: buildIndexSharePath({ messageId, activityId }),
+      })
     }
 
-    return {
-      title: 'hi～快打开看看！群里有人对你匿名留言了',
-      path: '/pages/index/index',
-    }
+    return buildSharePayload()
+  },
+
+  scheduleUnlockAfterShare(messageId, activityId) {
+    if (!messageId || !activityId || this.data.unlockingId === messageId) return
+
+    const token = `${messageId}:${activityId}:${Date.now()}`
+    this.pendingShareUnlockToken = token
+    setTimeout(() => {
+      if (this.pendingShareUnlockToken !== token) return
+      const message = this.getMessage(messageId)
+      if (!message || message.unlocked) return
+      this.pendingShareUnlockToken = ''
+      this.unlockMessage(messageId, activityId, 'share')
+    }, 900)
   },
 
   askUnlockFromShare(pendingUnlock) {

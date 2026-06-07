@@ -101,7 +101,7 @@ exports.main = async (event) => {
   const customAccessGranted = !!event.customAccessGranted || !!event.customRewarded
 
   if (!openid) return { code: 401, message: '请先登录' }
-  if (!openGid) return { code: 4005, message: '请先从群里的卡片进入群隐盒' }
+  if (!openGid) return { code: 4005, message: '当前群信息还没准备好，请返回首页重新进入后再试' }
   if (VALID_CATEGORIES.indexOf(category) === -1) return { code: 4001, message: '请选择正确分类' }
   if (!content) return { code: 4002, message: '纸条内容不能为空' }
   if (charLength(content) > MAX_MESSAGE_LENGTH) return { code: 4003, message: `纸条最多${MAX_MESSAGE_LENGTH}字` }

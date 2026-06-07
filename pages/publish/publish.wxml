@@ -106,5 +106,21 @@
     </view>
   </view>
 
-  <view class="primary-btn publish-btn {{submitting ? 'disabled' : ''}}" bindtap="submitMessage" hover-class="pressing">{{submitting ? '匿名投递中' : '匿名放进盒子'}}</view>
+  <view wx:if="{{customSharePromptVisible}}" class="share-modal-mask" catchtap="closeCustomSharePrompt">
+    <view class="share-modal glass-card" catchtap="noop">
+      <view class="share-modal-kicker">小纸条能量已满</view>
+      <view class="share-modal-title">分享后继续写自己的话</view>
+      <view class="share-modal-note">把群隐盒分享给任意微信群，今天自定义文案就不再限制次数。</view>
+      <share-entry
+        button-text="分享后继续写"
+        note="触发分享后回到这里，会自动打开自定义文案。"
+      />
+      <view class="share-modal-cancel" bindtap="closeCustomSharePrompt" hover-class="pressing">先不用</view>
+    </view>
+  </view>
+
+  <view class="publish-action-bar">
+    <view class="publish-action-hint">{{content ? '选好了，匿名放进这个群的盒子里。' : '先选语气和模板，写好后点这里投递。'}}</view>
+    <view class="primary-btn publish-btn {{submitting ? 'disabled' : ''}}" bindtap="submitMessage" hover-class="pressing">{{submitting ? '匿名投递中' : '匿名放进盒子'}}</view>
+  </view>
 </view>

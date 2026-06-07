@@ -1,5 +1,8 @@
 {
   "navigationBarTitleText": "群隐盒",
   "enablePullDownRefresh": true,
-  "backgroundTextStyle": "dark"
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "share-entry": "/components/share-entry/share-entry"
+  }
 }

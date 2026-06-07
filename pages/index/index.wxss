@@ -330,16 +330,31 @@
   font-size: 22rpx;
 }
 
-.fab {
+.fab-movable-area {
   position: fixed;
-  right: 32rpx;
-  bottom: calc(48rpx + env(safe-area-inset-bottom));
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
   z-index: 8;
+  pointer-events: none;
+}
+
+.fab-movable {
+  width: 226rpx;
+  height: 96rpx;
+  pointer-events: auto;
+}
+
+.fab {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10rpx;
+  width: 226rpx;
   height: 96rpx;
-  padding: 0 32rpx;
+  box-sizing: border-box;
+  padding: 0 28rpx;
   border-radius: 999rpx;
   color: #fffaf4;
   font-size: 30rpx;

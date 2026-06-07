@@ -43,7 +43,7 @@
     bindscrolltolower="onScrollToLower"
   >
     <view wx:if="{{resolvingGroupContext || (loading && hasGroupContext && !messages.length)}}" class="loading-line">
-      {{resolvingGroupContext ? '正在确认群隐盒...' : '正在拆开小纸条...'}}
+      {{resolvingGroupContext ? '正在加载中...' : '正在拆开小纸条...'}}
     </view>
 
     <block wx:if="{{!resolvingGroupContext && messages.length}}">
@@ -116,10 +116,17 @@
 
     <view wx:if="{{!resolvingGroupContext && !loading && !messages.length}}" class="empty-state glass-card">
       <text class="empty-illustration">🪶</text>
-      <block wx:if="{{!hasGroupContext}}">
+      <block wx:if="{{!hasGroupContext && isGroupChatEntry}}">
+        <view>这个群还没有匿名纸条。</view>
+        <view>成为第一个匿名投递的人吧。</view>
+      </block>
+      <block wx:elif="{{!hasGroupContext}}">
         <view>先把群隐盒分享进群里</view>
         <view>从群里的卡片进入就能看到这个群的匿名消息。</view>
         <view>第一个分享者将成为群隐盒管理员</view>
+        <share-entry
+          button-text="分享进群"
+        />
       </block>
       <block wx:else>
         <view>这个群还没有匿名纸条。</view>
@@ -131,10 +138,25 @@
     <view wx:if="{{!resolvingGroupContext && !hasMore && messages.length}}" class="loading-line">纸条先看到这里啦</view>
   </scroll-view>
 
-  <view wx:if="{{hasGroupContext && !resolvingGroupContext}}" class="fab" bindtap="goPublish" hover-class="pressing">
-    <text class="fab-icon">🪶</text>
-    <text>匿名投递</text>
-  </view>
+  <movable-area wx:if="{{hasGroupContext && !resolvingGroupContext && fabReady}}" class="fab-movable-area">
+    <movable-view
+      class="fab-movable"
+      direction="all"
+      inertia="{{true}}"
+      out-of-bounds="{{false}}"
+      x="{{fabX}}"
+      y="{{fabY}}"
+      bindchange="onFabMove"
+      bindtouchstart="onFabTouchStart"
+      bindtouchend="onFabTouchEnd"
+      bindtap="handleFabTap"
+    >
+      <view class="fab" hover-class="pressing">
+        <text class="fab-icon">🪶</text>
+        <text>匿名投递</text>
+      </view>
+    </movable-view>
+  </movable-area>
 
   <view wx:if="{{nicknamePromptVisible}}" class="profile-modal-mask" catchtap="cancelNicknamePrompt">
     <view class="profile-modal glass-card" catchtap="noop">

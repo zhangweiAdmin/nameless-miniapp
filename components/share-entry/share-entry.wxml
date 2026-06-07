@@ -1,0 +1,9 @@
+<view class="share-entry">
+  <button class="share-button" open-type="share" hover-class="none">
+    <view class="share-action" hover-class="pressing">
+      <text wx:if="{{icon}}" class="share-icon">{{icon}}</text>
+      <text>{{buttonText}}</text>
+    </view>
+  </button>
+  <view wx:if="{{note}}" class="share-note">{{note}}</view>
+</view>

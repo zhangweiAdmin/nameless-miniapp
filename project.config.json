@@ -1,12 +1,7 @@
 {
   "description": "群隐盒微信小程序",
   "packOptions": {
-    "ignore": [
-      {
-        "type": "folder",
-        "value": "assets/images"
-      }
-    ],
+    "ignore": [],
     "include": []
   },
   "setting": {
