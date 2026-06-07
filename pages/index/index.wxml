@@ -54,7 +54,13 @@
               <text>{{item.categoryIcon}}</text>
               <text>{{item.categoryLabel}}</text>
             </view>
-            <view class="time-text">{{item.formattedTime}}</view>
+            <view class="card-meta">
+              <view wx:if="{{item.highEnergy}}" class="high-energy-stamp">
+                <text class="high-energy-main">高能</text>
+                <text class="high-energy-count">{{item.highEnergyCount}}互动</text>
+              </view>
+              <view class="time-text">{{item.formattedTime}}</view>
+            </view>
           </view>
 
           <view wx:if="{{item.targetName}}" class="target-line">
@@ -86,28 +92,30 @@
             </view>
           </view>
 
-          <view class="identity-box unlocked" wx:if="{{item.unlocked}}">
-            <view>
-              <view class="identity-label">发送者昵称</view>
-              <view class="identity-name">{{item.senderNickname || '暂未确认昵称'}}</view>
+          <block wx:if="{{!item.isOwner}}">
+            <view class="identity-box unlocked" wx:if="{{item.unlocked}}">
+              <view>
+                <view class="identity-label">发送者昵称</view>
+                <view class="identity-name">{{item.senderNickname || '暂未确认昵称'}}</view>
+              </view>
+              <view class="identity-mark">🌙</view>
             </view>
-            <view class="identity-mark">🌙</view>
-          </view>
 
-          <view class="identity-box locked" wx:else>
-            <view class="lock-copy">
-              <view class="identity-label">发送者藏着</view>
-              <view class="lock-tip">解锁后显示发送者昵称，不显示头像。</view>
+            <view class="identity-box locked" wx:else>
+              <view class="lock-copy">
+                <view class="identity-label">发送者藏着</view>
+                <view class="lock-tip">解锁后显示发送者昵称，不显示头像。</view>
+              </view>
+              <view class="unlock-actions">
+                <view
+                  class="mini-action {{preparingShareId == item._id ? 'disabled' : ''}}"
+                  data-id="{{item._id}}"
+                  bindtap="prepareShareUnlock"
+                  hover-class="pressing"
+                >{{preparingShareId == item._id ? '准备中' : '解锁发送者'}}</view>
+              </view>
             </view>
-            <view class="unlock-actions">
-              <view
-                class="mini-action {{preparingShareId == item._id ? 'disabled' : ''}}"
-                data-id="{{item._id}}"
-                bindtap="prepareShareUnlock"
-                hover-class="pressing"
-              >{{preparingShareId == item._id ? '准备中' : '解锁发送者'}}</view>
-            </view>
-          </view>
+          </block>
 
           <view class="report-link" data-id="{{item._id}}" bindtap="reportMessage" hover-class="pressing">举报</view>
         </view>

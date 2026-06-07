@@ -154,6 +154,40 @@
   margin-bottom: 22rpx;
 }
 
+.card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  gap: 12rpx;
+}
+
+.high-energy-stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  height: 46rpx;
+  padding: 0 14rpx;
+  border: 2rpx solid rgba(199, 119, 90, 0.74);
+  border-radius: 999rpx;
+  color: #c7775a;
+  background: rgba(255, 247, 231, 0.86);
+  box-shadow: 0 8rpx 18rpx rgba(199, 119, 90, 0.12);
+  transform: rotate(-5deg);
+}
+
+.high-energy-main {
+  font-size: 22rpx;
+  font-weight: 950;
+  letter-spacing: 1rpx;
+}
+
+.high-energy-count {
+  color: #a87558;
+  font-size: 18rpx;
+  font-weight: 850;
+}
+
 .category-pill {
   display: inline-flex;
   align-items: center;
@@ -168,6 +202,7 @@
 .time-text {
   color: #ad9c8f;
   font-size: 23rpx;
+  white-space: nowrap;
 }
 
 .target-line {

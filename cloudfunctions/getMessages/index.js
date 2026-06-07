@@ -22,6 +22,38 @@ function normalizeReactions(reactions) {
   return result
 }
 
+function interactionCount(message) {
+  const reactions = message.reactions || {}
+  const reactionCount = Object.keys(reactions).reduce((total, emotion) => (
+    total + (Number(reactions[emotion]) || 0)
+  ), 0)
+  return (Number(message.likeCount) || 0) + reactionCount + (Number(message.unlockCount) || 0)
+}
+
+function findHighEnergyMessage(messages) {
+  let winner = null
+  let winnerCount = 0
+
+  ;(messages || []).forEach((message) => {
+    const count = interactionCount(message)
+    if (count <= 0) return
+    if (!winner || count > winnerCount) {
+      winner = message
+      winnerCount = count
+      return
+    }
+    if (count === winnerCount && dateValue(message.createTime) > dateValue(winner.createTime)) {
+      winner = message
+      winnerCount = count
+    }
+  })
+
+  return {
+    id: winner ? winner._id : '',
+    count: winnerCount,
+  }
+}
+
 function normalizeNickname(value) {
   return String(value || '').trim().replace(/\s+/g, ' ')
 }
@@ -55,6 +87,8 @@ function dateValue(value) {
 function sortMessages(messages, sortBy) {
   return messages.sort((a, b) => {
     if (sortBy === 'hot') {
+      const interactionGap = interactionCount(b) - interactionCount(a)
+      if (interactionGap) return interactionGap
       const likeGap = (b.likeCount || 0) - (a.likeCount || 0)
       if (likeGap) return likeGap
     }
@@ -88,9 +122,11 @@ exports.main = async (event) => {
     ensureCollection('user_profiles'),
   ])
 
-  const fetchLimit = Math.min(offset + pageSize + 1, 100)
+  const fetchLimit = 100
   const messageResult = await db.collection('messages').where(filter).limit(fetchLimit).get()
-  const sortedMessages = sortMessages(messageResult.data || [], sortBy)
+  const allMessages = messageResult.data || []
+  const highEnergyMessage = findHighEnergyMessage(allMessages)
+  const sortedMessages = sortMessages(allMessages, sortBy)
   const messages = sortedMessages.slice(offset, offset + pageSize)
   const ids = messages.map((item) => item._id)
 
@@ -174,5 +210,7 @@ exports.main = async (event) => {
     code: 0,
     list,
     nextToken: sortedMessages.length > offset + pageSize ? String(offset + messages.length) : '',
+    highEnergyMessageId: highEnergyMessage.id,
+    highEnergyInteractionCount: highEnergyMessage.count,
   }
 }

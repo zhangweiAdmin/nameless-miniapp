@@ -32,6 +32,65 @@ function buildReactionList(reactions, reactedEmotions) {
   }))
 }
 
+function reactionCountFromList(reactionList) {
+  if (!Array.isArray(reactionList)) return 0
+  return reactionList.reduce((total, item) => total + (Number(item.count) || 0), 0)
+}
+
+function reactionCountFromMap(reactions) {
+  const reactionMap = reactions || {}
+  return Object.keys(reactionMap).reduce((total, emotion) => total + (Number(reactionMap[emotion]) || 0), 0)
+}
+
+function messageTimeValue(message) {
+  const date = new Date(normalizeCloudDate(message.createTime))
+  const time = date.getTime()
+  return Number.isNaN(time) ? 0 : time
+}
+
+function messageInteractionCount(message) {
+  const reactionCount = Array.isArray(message.reactionList)
+    ? reactionCountFromList(message.reactionList)
+    : reactionCountFromMap(message.reactions)
+  return (Number(message.likeCount) || 0) + reactionCount + (Number(message.unlockCount) || 0)
+}
+
+function findHighEnergyMessage(messages) {
+  let winner = null
+  let winnerCount = 0
+
+  ;(messages || []).forEach((message) => {
+    const count = messageInteractionCount(message)
+    if (count <= 0) return
+    if (!winner || count > winnerCount) {
+      winner = message
+      winnerCount = count
+      return
+    }
+    if (count === winnerCount && messageTimeValue(message) > messageTimeValue(winner)) {
+      winner = message
+      winnerCount = count
+    }
+  })
+
+  return {
+    id: winner ? winner._id : '',
+    count: winnerCount,
+  }
+}
+
+function markHighEnergyMessages(messages, preferredId) {
+  const fallback = findHighEnergyMessage(messages)
+  const highEnergyId = preferredId || fallback.id
+  return (messages || []).map((message) => {
+    const count = messageInteractionCount(message)
+    return Object.assign({}, message, {
+      highEnergy: !!highEnergyId && message._id === highEnergyId && count > 0,
+      highEnergyCount: count,
+    })
+  })
+}
+
 function decorateMessage(item) {
   const category = CATEGORY_MAP[item.category] || CATEGORY_MAP.praise
   const createTime = normalizeCloudDate(item.createTime)
@@ -94,6 +153,7 @@ Page({
     loading: false,
     loadingMore: false,
     resolvingGroupContext: false,
+    highEnergyMessageId: '',
     preparingShareId: '',
     sharePreparedMessageId: '',
     unlockingId: '',
@@ -523,10 +583,13 @@ Page({
     }).then((result) => {
       const data = resultData(result)
       const nextList = (data.list || []).map(decorateMessage)
+      const combinedMessages = reset ? nextList : this.data.messages.concat(nextList)
+      const highEnergyMessageId = data.highEnergyMessageId || ''
       this.setData({
-        messages: reset ? nextList : this.data.messages.concat(nextList),
+        messages: markHighEnergyMessages(combinedMessages, highEnergyMessageId),
         pageToken: data.nextToken || '',
         hasMore: !!data.nextToken,
+        highEnergyMessageId,
       })
     }).catch((error) => {
       if (reset) this.setData({ messages: [], hasMore: false })
@@ -609,7 +672,7 @@ Page({
       const patch = typeof updater === 'function' ? updater(message) : updater
       return Object.assign({}, message, patch)
     })
-    this.setData({ messages })
+    this.setData({ messages: markHighEnergyMessages(messages) })
   },
 
   getMessage(messageId) {
