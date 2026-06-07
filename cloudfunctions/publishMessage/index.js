@@ -125,7 +125,7 @@ exports.main = async (event) => {
     db.collection('messages').where({ _openid: openid, isTemplate: false, createTime: _.gte(todayStart) }).count(),
   ])
 
-  if (minuteCount.total >= 2) return { code: 4291, message: '匿名投递太快啦，稍等一分钟再试' }
+  if (minuteCount.total >= 2) return { code: 4291, message: '投递太快啦，稍等一分钟再试' }
   if (!isTemplate && customTodayCount.total >= CUSTOM_DAILY_QUOTA && !customAccessGranted) {
     return {
       code: 4301,
@@ -136,7 +136,7 @@ exports.main = async (event) => {
   }
 
   const safe = await isContentSafe(`${senderNickname} ${targetName} ${content}`, openid)
-  if (!safe) return { code: 87014, message: '内容可能不合规，请修改后再匿名投递' }
+  if (!safe) return { code: 87014, message: '内容可能不合规，请修改后再投递纸条' }
 
   const result = await db.collection('messages').add({
     data: {

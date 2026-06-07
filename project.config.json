@@ -1,7 +1,20 @@
 {
-  "description": "群隐盒微信小程序",
+  "description": "群隐盒悄悄话微信小程序",
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      {
+        "type": "file",
+        "value": "README.md"
+      },
+      {
+        "type": "file",
+        "value": "prd.md"
+      },
+      {
+        "type": "folder",
+        "value": "docs"
+      }
+    ],
     "include": []
   },
   "setting": {

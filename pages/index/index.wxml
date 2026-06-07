@@ -3,11 +3,11 @@
   <view class="soft-orb two"></view>
 
   <view class="hero glass-card">
-    <view class="hero-kicker">ANON WHISPER BOX</view>
+    <view class="hero-kicker">WHISPER NOTE BOX</view>
     <view class="hero-title-row">
       <view>
         <view class="hero-title">{{groupName}}</view>
-        <view class="hero-subtitle">群里说话怕尴尬，匿名留言有办法。夸夸安慰随心发，点赞多了往前挂。</view>
+        <view class="hero-subtitle">群里说话怕尴尬，悄悄话有办法。夸夸安慰随心发，点赞多了往前挂。</view>
       </view>
       <view class="hero-badge">✉️</view>
     </view>
@@ -125,20 +125,20 @@
     <view wx:if="{{!resolvingGroupContext && !loading && !messages.length}}" class="empty-state glass-card">
       <text class="empty-illustration">🪶</text>
       <block wx:if="{{!hasGroupContext && isGroupChatEntry}}">
-        <view>这个群还没有匿名纸条。</view>
-        <view>成为第一个匿名投递的人吧。</view>
+        <view>这个群还没有悄悄话纸条。</view>
+        <view>成为第一个投递纸条的人吧。</view>
       </block>
       <block wx:elif="{{!hasGroupContext}}">
-        <view>先把群隐盒分享进群里</view>
-        <view>从群里的卡片进入就能看到这个群的匿名消息。</view>
-        <view>第一个分享者将成为群隐盒管理员</view>
+        <view>先把群隐盒悄悄话分享进群里</view>
+        <view>从群里的卡片进入就能看到这个群的群内纸条。</view>
+        <view>第一个分享者将成为纸条盒管理员</view>
         <share-entry
           button-text="分享进群"
         />
       </block>
       <block wx:else>
-        <view>这个群还没有匿名纸条。</view>
-        <view>成为第一个匿名投递的人吧。</view>
+        <view>这个群还没有悄悄话纸条。</view>
+        <view>成为第一个投递纸条的人吧。</view>
       </block>
     </view>
 
@@ -161,7 +161,7 @@
     >
       <view class="fab" hover-class="pressing">
         <text class="fab-icon">🪶</text>
-        <text>匿名投递</text>
+        <text>投递纸条</text>
       </view>
     </movable-view>
   </movable-area>

@@ -5,7 +5,7 @@
     "pages/mine/mine"
   ],
   "window": {
-    "navigationBarTitleText": "群隐盒",
+    "navigationBarTitleText": "群隐盒悄悄话",
     "navigationBarBackgroundColor": "#F8E9D9",
     "navigationBarTextStyle": "black",
     "backgroundColor": "#FFF7EC",

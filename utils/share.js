@@ -1,6 +1,6 @@
 const GROUP_SHARE_MARK = 'fromGroupShare'
 const GROUP_SHARE_VALUE = '1'
-const SHARE_TITLE = 'hi~ 有人匿名给你留言了，快打开看看吧。'
+const SHARE_TITLE = 'hi~有人在群隐盒悄悄话里给你留了纸条，快打开看看。'
 const SHARE_IMAGE_URL = '/assets/images/share-card.png'
 
 function encodeQuery(params) {

@@ -36,7 +36,7 @@ exports.main = async (event) => {
 
   const messageResult = await db.collection('messages').doc(messageId).get().catch(() => null)
   if (!messageResult || !messageResult.data) return { code: 404, message: '纸条不存在' }
-  if (messageResult.data._openid !== openid) return { code: 403, message: '只能删除自己的匿名纸条' }
+  if (messageResult.data._openid !== openid) return { code: 403, message: '只能删除自己的纸条' }
 
   await db.collection('messages').doc(messageId).update({
     data: {

@@ -4,8 +4,8 @@
 
   <view class="mine-hero glass-card">
     <view>
-      <view class="page-title">我的匿名纸条</view>
-      <view class="page-subtitle">查看你匿名投递过的纸条，也收藏那些被你解锁的发送者昵称。</view>
+      <view class="page-title">我的悄悄话纸条</view>
+      <view class="page-subtitle">查看你投递过的纸条，也收藏那些被你解锁的发送者昵称。</view>
     </view>
     <view class="profile-seal">盒</view>
   </view>
@@ -13,7 +13,7 @@
   <view class="stats-row">
     <view class="stat-card glass-card">
       <view class="stat-num">{{myMessages.length}}</view>
-      <view class="stat-label">匿名投递</view>
+      <view class="stat-label">投递纸条</view>
     </view>
     <view class="stat-card glass-card">
       <view class="stat-num">{{unlockRecords.length}}</view>
@@ -55,7 +55,7 @@
     </block>
     <view wx:else class="empty-state glass-card">
       <text class="empty-illustration">✉️</text>
-      <view>你还没有匿名投递过纸条。</view>
+      <view>你还没有投递过纸条。</view>
     </view>
   </view>
 
@@ -74,7 +74,7 @@
             <text>写给：</text>
             <text>{{item.targetName}}</text>
           </view>
-          <view class="mine-content">{{item.contentSnapshot || '这张匿名纸条已删除，保留历史解锁记录。'}}</view>
+          <view class="mine-content">{{item.contentSnapshot || '这张纸条已删除，保留历史解锁记录。'}}</view>
           <view class="sender-line">发送者昵称：{{item.senderNickname || '暂未确认昵称'}}</view>
         </view>
       </block>
@@ -88,7 +88,7 @@
   <view wx:if="{{!loading && activePanel == 'group'}}" class="panel-body">
     <view class="group-card glass-card" wx:if="{{groupInfo.isCreator}}">
       <view class="section-title">群名称</view>
-      <view class="section-note">这个名称会显示在首页和分享卡片里。默认“群隐盒”，最多 6 个字。</view>
+      <view class="section-note">这个名称会显示在首页和分享卡片里。默认“群隐盒悄悄话”，最多 6 个字。</view>
       <view class="name-input-wrap">
         <input class="name-input" maxlength="6" value="{{groupNameInput}}" bindinput="onGroupNameInput" placeholder="输入群名称" />
       </view>
@@ -100,11 +100,11 @@
       <text class="empty-illustration">🌥️</text>
       <block wx:if="{{groupInfo.openGid}}">
         <view>当前群已有管理员。</view>
-        <view>只有第一个把群隐盒分享进这个群并完成群绑定的人，可以修改这个群的显示名称。</view>
+        <view>只有第一个把群隐盒悄悄话分享进这个群并完成群绑定的人，可以修改这个群的显示名称。</view>
       </block>
       <block wx:else>
         <view>暂时没有可管理的群。</view>
-        <view>请先把群隐盒分享到群，再从群里的卡片进入。</view>
+        <view>请先把群隐盒悄悄话分享到群，再从群里的卡片进入。</view>
       </block>
     </view>
   </view>

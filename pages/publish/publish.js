@@ -137,7 +137,7 @@ Page({
     customSharePromptVisible: false,
     checkingCustomEntry: false,
     hasGroupContext: false,
-    groupName: '群隐盒',
+    groupName: '群隐盒悄悄话',
   },
 
   onLoad(options) {
@@ -168,7 +168,7 @@ Page({
     this.profileRedirecting = true
     wx.showModal({
       title: '先确认昵称',
-      content: '确认昵称后才能匿名投递。请回到首页点击“匿名投递”，确认昵称后再进入发布页。',
+      content: '确认昵称后才能投递纸条。请回到首页点击“投递纸条”，确认昵称后再进入发布页。',
       confirmText: '去首页',
       showCancel: false,
       success: () => {
@@ -188,14 +188,14 @@ Page({
     const hasGroupContext = !!groupInfo.openGid
     this.setData({
       hasGroupContext,
-      groupName: groupInfo.customName || '群隐盒',
+      groupName: groupInfo.customName || '群隐盒悄悄话',
     })
   },
 
   captureGroupFromQuery(options) {
     if (!options || !options.openGid) return
     app.globalData.groupInfo = Object.assign({}, currentGroupInfo(), {
-      customName: options.groupName ? decodeURIComponent(options.groupName) : currentGroupInfo().customName || '群隐盒',
+      customName: options.groupName ? decodeURIComponent(options.groupName) : currentGroupInfo().customName || '群隐盒悄悄话',
       openGid: options.openGid,
     })
   },
@@ -455,7 +455,7 @@ Page({
     if (!this.syncUserProfileState()) {
       wx.showModal({
         title: '先确认昵称',
-        content: '请先回到首页点击“匿名投递”，确认昵称后再发布。',
+        content: '请先回到首页点击“投递纸条”，确认昵称后再发布。',
         confirmText: '去首页',
         showCancel: false,
         success: () => {
@@ -492,7 +492,7 @@ Page({
 
   publishMessage(content, customAccessGranted) {
     this.setData({ submitting: true })
-    wx.showLoading({ title: '匿名投递中' })
+    wx.showLoading({ title: '投递中' })
 
     callFunction('publishMessage', {
       openGid: currentOpenGid(),
@@ -514,7 +514,7 @@ Page({
       }
 
       app.globalData.needRefreshMessages = true
-      wx.showToast({ title: '已匿名投递', icon: 'success' })
+      wx.showToast({ title: '已放进盒子', icon: 'success' })
       setTimeout(() => {
         const pages = getCurrentPages()
         if (pages.length > 1) {
@@ -537,7 +537,7 @@ Page({
         title: '投递失败',
         content: error && error.code === 4005
           ? '当前群信息还没准备好，请返回首页重新进入后再试。'
-          : (error && error.message ? error.message : '匿名投递失败，请稍后再试'),
+          : (error && error.message ? error.message : '投递失败，请稍后再试'),
         confirmText: '知道了',
         showCancel: false,
       })

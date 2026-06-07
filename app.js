@@ -3,7 +3,7 @@ const { readUserProfile } = require('./utils/profile')
 const { ensureShareTicketMenu } = require('./utils/share')
 
 const DEFAULT_GROUP_INFO = {
-  customName: '群隐盒',
+  customName: '群隐盒悄悄话',
   isCreator: false,
   modifyCount: 0,
   openGid: '',
@@ -21,7 +21,7 @@ function mergeGroupFromQuery(globalData, query) {
   if (!query || !query.openGid) return
 
   globalData.groupInfo = Object.assign({}, globalData.groupInfo || {}, {
-    customName: query.groupName ? decodeURIComponent(query.groupName) : (globalData.groupInfo && globalData.groupInfo.customName) || '群隐盒',
+    customName: query.groupName ? decodeURIComponent(query.groupName) : (globalData.groupInfo && globalData.groupInfo.customName) || '群隐盒悄悄话',
     openGid: query.openGid,
   })
 }

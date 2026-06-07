@@ -140,7 +140,7 @@ function bindGroupByShareTicket(shareTicket) {
 
 Page({
   data: {
-    groupName: '群隐盒',
+    groupName: '群隐盒悄悄话',
     hasGroupContext: false,
     isGroupChatEntry: false,
     activeOpenGid: '',
@@ -420,7 +420,7 @@ Page({
   captureGroupFromQuery(options) {
     if (!options || !options.openGid) return
     app.globalData.groupInfo = Object.assign({}, currentGroupInfo(), {
-      customName: options.groupName ? decodeURIComponent(options.groupName) : currentGroupInfo().customName || '群隐盒',
+      customName: options.groupName ? decodeURIComponent(options.groupName) : currentGroupInfo().customName || '群隐盒悄悄话',
       openGid: options.openGid,
     })
   },
@@ -455,7 +455,7 @@ Page({
           loadingMore: false,
         })
       }
-      showCloudError(error, '群隐盒加载失败')
+      showCloudError(error, '群隐盒悄悄话加载失败')
     })
   },
 
@@ -465,7 +465,7 @@ Page({
       return bindGroupByShareTicket(shareTicket).then((result) => {
         const data = resultData(result)
         const groupInfo = {
-          customName: data.customName || '群隐盒',
+          customName: data.customName || '群隐盒悄悄话',
           isCreator: !!data.isCreator,
           modifyCount: data.modifyCount || 0,
           openGid: data.openGid || '',
@@ -485,7 +485,7 @@ Page({
       return callFunction('bindGroup', { openGid: queryOpenGid }).then((result) => {
         const data = resultData(result)
         const groupInfo = {
-          customName: data.customName || currentGroupInfo().customName || '群隐盒',
+          customName: data.customName || currentGroupInfo().customName || '群隐盒悄悄话',
           isCreator: !!data.isCreator,
           modifyCount: data.modifyCount || 0,
           openGid: data.openGid || queryOpenGid,
@@ -507,7 +507,7 @@ Page({
     return callFunction('bindGroup', { openGid: currentOpenGid() }).then((result) => {
       const data = resultData(result)
       const groupInfo = {
-        customName: data.customName || '群隐盒',
+        customName: data.customName || '群隐盒悄悄话',
         isCreator: !!data.isCreator,
         modifyCount: data.modifyCount || 0,
         openGid: data.openGid || currentOpenGid(),
@@ -526,7 +526,7 @@ Page({
     const openGid = groupInfo.openGid || ''
     const groupChanged = openGid !== this.data.activeOpenGid
     this.setData({
-      groupName: groupInfo.customName || '群隐盒',
+      groupName: groupInfo.customName || '群隐盒悄悄话',
       hasGroupContext: !!openGid,
       isGroupChatEntry: !!app.globalData.isGroupChatEntry,
       activeOpenGid: openGid,
@@ -593,7 +593,7 @@ Page({
       })
     }).catch((error) => {
       if (reset) this.setData({ messages: [], hasMore: false })
-      showCloudError(error, '匿名纸条暂时加载失败')
+      showCloudError(error, '悄悄话纸条暂时加载失败')
     }).then(() => {
       this.setData({ loading: false, loadingMore: false })
     })
@@ -632,7 +632,7 @@ Page({
     const groupInfo = currentGroupInfo()
     const params = [
       `openGid=${encodeURIComponent(groupInfo.openGid || '')}`,
-      `groupName=${encodeURIComponent(groupInfo.customName || '群隐盒')}`,
+      `groupName=${encodeURIComponent(groupInfo.customName || '群隐盒悄悄话')}`,
     ]
     const publishUrl = `/pages/publish/publish?${params.join('&')}`
 
@@ -649,7 +649,7 @@ Page({
   showProfileEntryTip() {
     wx.showModal({
       title: '先确认昵称',
-      content: '确认昵称后才能匿名投递。你仍然可以先浏览群里的纸条。',
+      content: '确认昵称后才能投递纸条。你仍然可以先浏览群里的纸条。',
       confirmText: '知道了',
       showCancel: false,
     })
@@ -660,7 +660,7 @@ Page({
 
     wx.showModal({
       title: '先放进群里',
-      content: '请点击右上角“...”把群隐盒分享到群，再从群里的卡片进入。每个群会拥有自己的匿名纸条盒。',
+      content: '请点击右上角“...”把群隐盒悄悄话分享到群，再从群里的卡片进入。每个群会拥有自己的纸条盒。',
       confirmText: '知道了',
       showCancel: false,
     })
@@ -815,7 +815,7 @@ Page({
     if (!pendingUnlock || !pendingUnlock.messageId) return
 
     wx.showModal({
-      title: '发现一张匿名纸条',
+      title: '发现一张悄悄话纸条',
       content: '要查看这张纸条的发送者昵称吗？不会显示头像。',
       confirmText: '解锁发送者',
       cancelText: '先看看',

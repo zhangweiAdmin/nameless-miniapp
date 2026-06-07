@@ -88,7 +88,7 @@ exports.main = async (event) => {
   if (!openid) return { code: 401, message: '登录态失效，请重新打开小程序' }
 
   if (!openGid) {
-    return { code: 0, customName: '群隐盒', isCreator: false, modifyCount: 0, openGid: '' }
+    return { code: 0, customName: '群隐盒悄悄话', isCreator: false, modifyCount: 0, openGid: '' }
   }
 
   await ensureCollections(['group_bindings', 'messages'])
@@ -103,7 +103,7 @@ exports.main = async (event) => {
     const group = existing.data[0]
     return {
       code: 0,
-      customName: group.customName || '群隐盒',
+      customName: group.customName || '群隐盒悄悄话',
       isCreator: group.creatorOpenId === openid,
       modifyCount: group.modifyCount || 0,
       openGid,
@@ -116,12 +116,12 @@ exports.main = async (event) => {
       _openid: openid,
       openGid,
       creatorOpenId: openid,
-      customName: '群隐盒',
+      customName: '群隐盒悄悄话',
       modifyCount: 0,
       createTime: now,
       lastModifyTime: now,
     },
   })
 
-  return { code: 0, customName: '群隐盒', isCreator: true, modifyCount: 0, openGid }
+  return { code: 0, customName: '群隐盒悄悄话', isCreator: true, modifyCount: 0, openGid }
 }

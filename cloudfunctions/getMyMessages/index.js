@@ -125,12 +125,12 @@ exports.main = async (event = {}) => {
     .sort((a, b) => dateValue(b.lastModifyTime) - dateValue(a.lastModifyTime))[0]
   const group = openGid ? currentGroup : latestCreatorGroup
   const groupInfo = group ? {
-    customName: group.customName || '群隐盒',
+    customName: group.customName || '群隐盒悄悄话',
     isCreator: group.creatorOpenId === openid,
     modifyCount: group.modifyCount || 0,
     openGid: group.openGid || '',
   } : {
-    customName: '群隐盒',
+    customName: '群隐盒悄悄话',
     isCreator: false,
     modifyCount: 0,
     openGid,

@@ -5,8 +5,8 @@
   <view class="publish-hero glass-card">
     <view class="paper-plane">🕊️</view>
     <view class="hero-copy">
-      <view class="page-title">投递匿名纸条</view>
-      <view class="page-subtitle">匿名投纸条，轻松没烦恼，回应随缘了，隐私我们保</view>
+      <view class="page-title">投递悄悄话纸条</view>
+      <view class="page-subtitle">不露昵称头像投纸条，轻松没烦恼，回应随缘了，隐私我们保</view>
     </view>
   </view>
 
@@ -73,7 +73,7 @@
     <view wx:if="{{showCustomInput}}" class="textarea-wrap">
       <textarea
         class="custom-textarea"
-        placeholder="比如：匿名夸一下那个把事情接住的人..."
+        placeholder="比如：悄悄夸一下那个把事情接住的人..."
         value="{{content}}"
         maxlength="{{maxLength}}"
         auto-height
@@ -110,7 +110,7 @@
     <view class="share-modal glass-card" catchtap="noop">
       <view class="share-modal-kicker">小纸条能量已满</view>
       <view class="share-modal-title">分享后继续写自己的话</view>
-      <view class="share-modal-note">把群隐盒分享给任意微信群，今天自定义文案就不再限制次数。</view>
+      <view class="share-modal-note">把群隐盒悄悄话分享给任意微信群，今天自定义文案就不再限制次数。</view>
       <share-entry
         button-text="分享后继续写"
         note="触发分享后回到这里，会自动打开自定义文案。"
@@ -120,7 +120,7 @@
   </view>
 
   <view class="publish-action-bar">
-    <view class="publish-action-hint">{{content ? '选好了，匿名放进这个群的盒子里。' : '先选语气和模板，写好后点这里投递。'}}</view>
-    <view class="primary-btn publish-btn {{submitting ? 'disabled' : ''}}" bindtap="submitMessage" hover-class="pressing">{{submitting ? '匿名投递中' : '匿名放进盒子'}}</view>
+    <view class="publish-action-hint">{{content ? '选好了，悄悄放进这个群的盒子里。' : '先选语气和模板，写好后点这里投递。'}}</view>
+    <view class="primary-btn publish-btn {{submitting ? 'disabled' : ''}}" bindtap="submitMessage" hover-class="pressing">{{submitting ? '投递中' : '放进盒子'}}</view>
   </view>
 </view>

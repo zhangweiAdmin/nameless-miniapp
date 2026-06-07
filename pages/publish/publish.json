@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "匿名投递",
+  "navigationBarTitleText": "投递纸条",
   "backgroundTextStyle": "dark",
   "usingComponents": {
     "share-entry": "/components/share-entry/share-entry"

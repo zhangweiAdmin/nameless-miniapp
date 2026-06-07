@@ -60,12 +60,12 @@ Page({
     myMessages: [],
     unlockRecords: [],
     groupInfo: {
-      customName: '群隐盒',
+      customName: '群隐盒悄悄话',
       isCreator: false,
       modifyCount: 0,
       openGid: '',
     },
-    groupNameInput: '群隐盒',
+    groupNameInput: '群隐盒悄悄话',
     savingGroup: false,
   },
 
@@ -86,7 +86,7 @@ Page({
 
     wx.showModal({
       title: '先确认昵称',
-      content: '进入群隐盒前需要先在首页点击“匿名投递”确认昵称。',
+      content: '进入群隐盒悄悄话前需要先在首页点击“投递纸条”确认昵称。',
       confirmText: '去首页',
       showCancel: false,
       success: () => {
@@ -105,7 +105,7 @@ Page({
   applyGroupInfo(rawGroupInfo) {
     const data = rawGroupInfo || {}
     const groupInfo = {
-      customName: data.customName || '群隐盒',
+      customName: data.customName || '群隐盒悄悄话',
       isCreator: !!data.isCreator,
       modifyCount: data.modifyCount || 0,
       openGid: data.openGid || '',
@@ -128,7 +128,7 @@ Page({
         }).catch(() => {
           this.setData({
             groupInfo,
-            groupNameInput: groupInfo.customName || '群隐盒',
+            groupNameInput: groupInfo.customName || '群隐盒悄悄话',
           })
           return groupInfo
         })
@@ -136,7 +136,7 @@ Page({
 
       this.setData({
         groupInfo,
-        groupNameInput: groupInfo.customName || '群隐盒',
+        groupNameInput: groupInfo.customName || '群隐盒悄悄话',
       })
       return Promise.resolve(groupInfo)
     }
@@ -162,7 +162,7 @@ Page({
         myMessages: (data.messages || data.list || []).map(decorateMessage),
         unlockRecords: (data.unlocks || []).map(decorateUnlock),
         groupInfo,
-        groupNameInput: groupInfo.customName || '群隐盒',
+        groupNameInput: groupInfo.customName || '群隐盒悄悄话',
       })
       app.globalData.groupInfo = groupInfo
     }).catch((error) => {
@@ -241,7 +241,7 @@ Page({
     if (!messageId) return
 
     wx.showModal({
-      title: '删除这张匿名纸条？',
+      title: '删除这张悄悄话纸条？',
       content: '删除后列表不再展示，但已产生的发送者昵称解锁记录会保留。',
       confirmText: '删除',
       confirmColor: '#C86555',
