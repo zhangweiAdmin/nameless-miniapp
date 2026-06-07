@@ -32,8 +32,8 @@
     </view>
     <view wx:if="{{activeCategory == 'confess'}}" class="unlock-setting" bindtap="toggleAllowUnlock" hover-class="pressing">
       <view class="unlock-setting-copy">
-        <view class="unlock-setting-title">允许查看发送者</view>
-        <view class="unlock-setting-note">默认开启；取消后，首页不展示解锁入口。</view>
+        <view class="unlock-setting-title">是否支持别人解锁</view>
+        <view class="unlock-setting-note">取消后，昵称将对所有人保密</view>
       </view>
       <view class="unlock-check {{allowUnlock ? 'checked' : ''}}">
         <text wx:if="{{allowUnlock}}">✓</text>
